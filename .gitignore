@@ -1,2 +1,6 @@
+# working directories
 /build
 /sln
+
+# clang analyzer files
+*.plist
