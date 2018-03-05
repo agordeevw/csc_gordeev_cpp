@@ -3,9 +3,15 @@
 #ifndef EVICTINGCACHEMAP_H_
 #define EVICTINGCACHEMAP_H_
 
+#include <cstddef>
+#include <optional>
+#include <functional>
+
 template <class TKey, class TValue, class THash = std::hash<TKey>>
 class EvictingCacheMap final {
  public:
+    class iterator;
+    class const_iterator;
     /**
      * Construct a EvictingCacheMap
      * @param capacity maximum size of the cache map.  Once the map size exceeds
