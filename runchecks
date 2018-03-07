@@ -1,0 +1,6 @@
+cppcheck --std=c++14 --enable=all --inconclusive include/ src/*.cpp tests/*.cpp
+
+clang --analyze --analyzer-output text -std=c++17 -x c++ -Wall -pedantic -Iinclude -Ibuild/tests/gtest/src/gtest/googletest/include src/*.cpp tests/*.cpp
+
+valgrind --leak-check=full bin/example
+valgrind --leak-check=full bin/EvictingCacheMapUnitTests
