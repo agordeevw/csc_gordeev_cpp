@@ -25,20 +25,24 @@ set_target_properties(libgtest PROPERTIES
 
 include_directories("${source_dir}/googletest/include")
 
-## test project
+## EvictingCacheMapUnitTests
+
+set (PROJECT_NAME EvictingCacheMapUnitTests)
 
 file(GLOB SRCS *.cpp)
 
-add_executable(tests ${SRCS})
+add_executable(${PROJECT_NAME} ${SRCS})
 
-set_target_properties(tests PROPERTIES
+set_target_properties(${PROJECT_NAME} PROPERTIES
 	LINKER_LANGUAGE CXX
 	CXX_STANDARD 17
 	CXX_STANDARD_REQUIRED YES
 	CXX_EXTENSIONS NO)
 
-target_link_libraries(tests
+target_link_libraries(${PROJECT_NAME}
     libgtest
 )
 
-install(TARGETS tests DESTINATION bin)
+set (CMAKE_CXX_FLAGS "-Wall -pedantic --coverage -fprofile-arcs -ftest-coverage")
+
+install(TARGETS ${PROJECT_NAME} DESTINATION bin)
