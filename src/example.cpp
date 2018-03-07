@@ -1,4 +1,13 @@
+#include <iostream>
+
 #include "EvictingCacheMap.h"
+
+void print_bool(bool value, bool expected)
+{
+  std::cout << std::boolalpha
+    << value << ", should be " <<  expected 
+    << std::endl;
+}
 
 int main() {
   EvictingCacheMap<char, int> map(8);
@@ -6,12 +15,13 @@ int main() {
   map.put('b', 3);
   map.put('c', 4);
   map.put('d', 4);
-  bool a = map.exists('a');  // must be false
-  bool b = map.empty();      // must be false
+
+  print_bool(map.exists('a'), true);
+  print_bool(map.empty(), false);
   map.erase('c');
-  bool c = map.exists('b');  // must be true
+  print_bool(map.exists('b'), true);
   auto existingValue = map.get('b');
-  bool d = existingValue.has_value();  // must be true
+  print_bool(existingValue.has_value(), true);
   auto nonexistingValue = map.get('c');
-  bool e = nonexistingValue.has_value();  // must be false
+  print_bool(nonexistingValue.has_value(), false);
 }
