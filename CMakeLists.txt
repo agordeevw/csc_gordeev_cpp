@@ -2,6 +2,10 @@ cmake_minimum_required( VERSION 2.8 )
 
 option (BUILD_TESTS "Build tests" OFF)
 
+## Common includes
+
+include_directories(include)
+
 ## Example project
 ## Shows some usage of evicting cache map
 
@@ -13,9 +17,6 @@ set(CMAKE_CXX_FLAGS "-g -Wall -pedantic")
 add_executable (${PROJECT_NAME}
 	src/example.cpp)
 
-target_include_directories(${PROJECT_NAME} PRIVATE
-	include)
-
 set_target_properties(${PROJECT_NAME} PROPERTIES
 	LINKER_LANGUAGE CXX
 	CXX_STANDARD 17
@@ -26,9 +27,6 @@ set (EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 
 if (BUILD_TESTS)
 
-	# download latest gtest version
-	# build tests
-	# ???
-	# profit!
+	add_subdirectory(tests)
 
 endif (BUILD_TESTS)
