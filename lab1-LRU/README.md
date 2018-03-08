@@ -1,10 +1,8 @@
-# C++ Course 2018
-
-## Lab1. LRU-cache
+# Lab1. LRU-cache
 
 Implementation of LRU evicting cache data structure based on hash map.
 
-### Building
+## Building
 
 To build:
 
@@ -15,7 +13,7 @@ cmake .. -DBUILD_TESTS=ON
 cmake --build .
 ```
 
-### Executing
+## Executing
 
 Compiled binaries will be stored in bin folder. Run gtest binaries with:
 
