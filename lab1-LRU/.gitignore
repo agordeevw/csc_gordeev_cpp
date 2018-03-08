@@ -1,0 +1,12 @@
+# working directories
+/build
+/sln
+
+# compiled binaries directory
+/bin
+
+# clang analyzer files
+*.plist
+
+# vscode-related files
+/.vscode
