@@ -1,10 +1,12 @@
-# LRU-cache
+# C++ Course 2018
+
+## Lab1. LRU-cache
 
 Implementation of LRU evicting cache data structure based on hash map.
 
-## Building
+### Building
 
-To build, run these commands:
+To build:
 
 ```
 mkdir build
@@ -13,9 +15,13 @@ cmake .. -DBUILD_TESTS=ON
 cmake --build .
 ```
 
-## Executing
+### Executing
 
-Compiled binaries will be stored in bin folder.
+Compiled binaries will be stored in bin folder. Run gtest binaries with:
+
+```
+./bin/EvictingCacheMapUnitTests
+```
 
 * example - small showcase of usage
 * EvictingCacheMapUnitTests - unit tests for the data structure
