@@ -5,7 +5,8 @@ hline()
 {
     printf "${GREEN}"
     printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' - 
-    printf "$1"
+    printf "$1\n"
+    printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' - 
     printf "${NC}\n"
 }
 
