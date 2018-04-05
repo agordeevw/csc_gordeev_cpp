@@ -168,6 +168,41 @@ private:
   bool first = true;
 };
 
+template <class T>
+class Group : public StreamProvider<std::vector<T>>
+{
+public:
+  Group(std::unique_ptr<StreamProvider<T>>&& source, size_t group_size) :
+    source(std::move(source)), group_size(group_size) {}
+
+  bool advance() override {
+    if (stream_ended) {
+      current.reset();
+      return false;
+    }
+    current = std::make_shared<std::vector<T>>();
+    for (size_t i = 0; i < group_size; ++i) {
+      if (source->advance())
+        current->emplace_back(std::move(*source->get()));
+      else {
+        stream_ended = true;
+        break;
+      }
+    }
+    return true;
+  }
+
+  std::shared_ptr<std::vector<T>> get() override {
+    return current;
+  }
+
+private:
+  std::unique_ptr<StreamProvider<T>> source;
+  std::shared_ptr<std::vector<T>> current;
+  size_t group_size;
+  bool stream_ended = false;
+};
+
 } // namespace providers
 
 template <class T>

@@ -47,6 +47,16 @@ namespace stream {
       return Stream<T>(std::move(source));
     });
   }
+
+  auto group(std::size_t N) {
+    return Operator([=] (auto&& stream) mutable {
+      using T = typename std::remove_reference_t<decltype(stream)>::value_type;
+      return Stream<std::vector<T>>(std::move(
+        std::make_unique<providers::Group<T>>(
+          std::move(stream.GetSource()), N)));
+    });
+  }
+
 } // namespace stream
 
 #endif
