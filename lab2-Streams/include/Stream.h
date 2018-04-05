@@ -17,10 +17,11 @@ public:
   Stream(Iter begin, Iter end) :
     source(std::make_unique<providers::Iterator<T, Iter>>(begin, end)) {}
 
-  /*template <class Container>
-  Stream(const Container& cont)
+  template <class Container>
+  Stream(const Container& cont) :
     Stream(cont.begin(), cont.end()) {}
 
+  /*
   template <class Container>
   Stream(Container&& cont) :
     source(std::make_unique<providers::Container>(std::move(cont))) {}
@@ -70,6 +71,8 @@ private:
 
 template <class Iter> Stream(Iter, Iter) ->
   Stream<typename Iter::value_type>;
+template <class Container> Stream(const Container&) ->
+  Stream<typename Container::value_type>;
 
 } // namespace stream
 
