@@ -34,6 +34,33 @@ public:
   Iter end;
 };
 
+template<class Container>
+class ContainerOwner : public StreamProvider<typename Container::value_type>
+{
+using InternalStreamProvider = 
+  providers::Iterator<
+    typename Container::value_type,
+    typename Container::iterator>;
+
+public:
+  ContainerOwner(Container&& cont) :
+    container(std::move(cont)),
+    source(std::make_unique<InternalStreamProvider>(
+      container.begin(), container.end())) {}
+
+  bool advance() override {
+    return source->advance();
+  }
+
+  std::shared_ptr<typename Container::value_type> get() override {
+    return source->get();
+  }
+
+private:
+  Container container;
+  std::unique_ptr<InternalStreamProvider> source;
+};
+
 } // namespace providers
 
 template <class T>

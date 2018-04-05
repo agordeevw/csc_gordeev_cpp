@@ -21,11 +21,11 @@ public:
   Stream(const Container& cont) :
     Stream(cont.begin(), cont.end()) {}
 
-  /*
   template <class Container>
   Stream(Container&& cont) :
-    source(std::make_unique<providers::Container>(std::move(cont))) {}
+    source(std::make_unique<providers::ContainerOwner<Container>>(std::move(cont))) {}
 
+  /*
   Stream(std::initializer_list<T> init) :
     source(std::make_unique<providers::Container>(std::move(init))) {}
 
