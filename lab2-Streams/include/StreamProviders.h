@@ -116,6 +116,26 @@ private:
   std::size_t current = 0;
 };
 
+template <class T, class Transform>
+class Map : public StreamProvider<std::result_of_t<Transform(T)>> 
+{
+public:
+  Map(std::unique_ptr<StreamProvider<T>>&& source, Transform&& transform):
+    source(std::move(source)), transform(std::forward<Transform>(transform)) {}
+
+  bool advance() override {
+    return source->advance();
+  }
+
+  std::shared_ptr<std::result_of_t<Transform(T)>> get() override {
+    return std::make_shared<std::result_of_t<Transform(T)>>(transform(*source->get()));
+  }
+
+private:
+  std::unique_ptr<StreamProvider<T>> source;
+  Transform transform;
+};
+
 } // namespace providers
 
 template <class T>

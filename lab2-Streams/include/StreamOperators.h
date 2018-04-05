@@ -3,12 +3,13 @@
 
 #include <stdexcept>
 #include <type_traits>
+#include <utility>
 
 #include "StreamProviders.h"
 
 namespace stream {
   auto get(std::size_t n) {
-    return Operator([=](auto&& stream) {
+    return Operator([=](auto&& stream) mutable {
       using T = typename std::remove_reference_t<decltype(stream)>::value_type;
       return Stream<T>(std::move(
         std::make_unique<providers::Get<T>>(
@@ -16,6 +17,16 @@ namespace stream {
     });
   }
   
+  template <class Transform>
+  auto map(Transform&& transform) {
+    return Operator([=] (auto&& stream) mutable {
+      using T = typename std::remove_reference_t<decltype(stream)>::value_type;
+      using U = std::result_of_t<Transform(T)>;
+      return Stream<U>(std::move(
+        std::make_unique<providers::Map<T, Transform>>(
+          std::move(stream.GetSource()), std::forward<Transform>(transform))));
+    });
+  }
 } // namespace stream
 
 #endif
