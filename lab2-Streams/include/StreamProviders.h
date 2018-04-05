@@ -1,4 +1,5 @@
 #include <memory>
+#include <type_traits>
 
 namespace stream {
 namespace providers {
@@ -59,6 +60,30 @@ public:
 private:
   Container container;
   std::unique_ptr<InternalStreamProvider> source;
+};
+
+template<class Generator>
+class Generate : public StreamProvider<std::result_of_t<Generator()>>
+{
+using T = std::result_of_t<Generator()>;
+
+public:
+  Generate(Generator&& generator):
+    generator(std::forward<Generator>(generator)),
+    current(std::make_shared<T>(generator())) {}
+
+  bool advance() override {
+    current = std::make_shared<T>(generator());
+    return true;
+  }
+
+  std::shared_ptr<T> get() override {
+    return current;
+  }
+
+private:
+  Generator generator;
+  std::shared_ptr<T> current;
 };
 
 } // namespace providers

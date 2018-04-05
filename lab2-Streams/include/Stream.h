@@ -1,7 +1,32 @@
 #include <memory>
 #include <utility>
+#include <type_traits>
 
 #include "StreamProviders.h"
+
+namespace {
+  template <class T, class _ = void>
+  struct is_container: std::false_type {};
+
+  template <class... Ts>
+  struct is_container_helper {};
+
+  template <class T>
+  struct is_container<
+    T,
+    std::conditional_t<
+      false,
+      is_container_helper<
+        decltype(std::declval<T>().begin()),
+        decltype(std::declval<T>().end())
+        >,
+      void
+      >
+    > : std::true_type {};
+
+  template <class T>
+  constexpr bool is_container_v = is_container<T>::value;
+} // namespace
 
 namespace stream 
 {
@@ -17,11 +42,13 @@ public:
   Stream(Iter begin, Iter end) :
     source(std::make_unique<providers::Iterator<T, Iter>>(begin, end)) {}
 
-  template <class Container>
+  template <class Container,
+    std::enable_if_t<is_container_v<Container>>>
   Stream(const Container& cont) :
     Stream(cont.begin(), cont.end()) {}
 
-  template <class Container>
+  template <class Container,
+    std::enable_if_t<is_container_v<Container>>>
   Stream(Container&& cont) :
     source(std::make_unique<providers::ContainerOwner<Container>>(std::move(cont))) {}
   
@@ -29,11 +56,11 @@ public:
     source(std::make_unique<providers::ContainerOwner<
       std::initializer_list<T>>>(std::move(init))) {}
 
-  /*
-  template <class Generator>
+  template <class Generator, 
+    class = std::enable_if_t<std::is_invocable_v<Generator()>>>
   Stream(Generator&& generator) :
-    source(std::make_unique<providers::Generate>(
-      std::forward<Generator>(generator)) {}*/
+    source(std::make_unique<providers::Generate<Generator>>(
+      std::forward<Generator>(generator))) {}
 
   /*
   template <class ...Args>
@@ -72,8 +99,12 @@ private:
 
 template <class Iter> Stream(Iter, Iter) ->
   Stream<typename Iter::value_type>;
-template <class Container> Stream(const Container&) ->
+template <class Container, std::enable_if_t<is_container_v<Container>>> Stream(const Container&) ->
   Stream<typename Container::value_type>;
+template <class Container, std::enable_if_t<is_container_v<Container>>> Stream(Container&&) ->
+  Stream<typename Container::value_type>;
+template <class Generator, class = std::enable_if_t<std::is_invocable_v<Generator()>>> Stream(Generator&&) ->
+  Stream<std::result_of_t<Generator()>>;
 
 } // namespace stream
 
