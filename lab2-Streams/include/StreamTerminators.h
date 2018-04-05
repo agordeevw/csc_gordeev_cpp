@@ -47,6 +47,18 @@ namespace stream {
       return os;
     });
   }
+
+  auto to_vector() {
+    return Terminator([=](auto&& stream) mutable {
+      using T = typename std::remove_reference_t<decltype(stream)>::value_type;
+      auto& source = stream.GetSource();
+      std::vector<T> result;
+      while(source->advance()) {
+        result.emplace_back(std::move(*source->get()));
+      }
+      return result;
+    });
+  }
   
 } // namespace stream
 
