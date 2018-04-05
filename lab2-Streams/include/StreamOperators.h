@@ -37,6 +37,16 @@ namespace stream {
           std::move(stream.GetSource()), std::forward<Predicate>(predicate))));
     });
   }
+
+  auto skip(std::size_t amount) {
+    return Operator([=] (auto&& stream) mutable {
+      using T = typename std::remove_reference_t<decltype(stream)>::value_type;
+      auto& source = stream.GetSource();
+      for (size_t i = 0; i < amount; ++i)
+        source->advance();
+      return Stream<T>(std::move(source));
+    });
+  }
 } // namespace stream
 
 #endif
