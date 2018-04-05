@@ -24,11 +24,12 @@ public:
   template <class Container>
   Stream(Container&& cont) :
     source(std::make_unique<providers::ContainerOwner<Container>>(std::move(cont))) {}
+  
+  Stream(std::initializer_list<T> init) :
+    source(std::make_unique<providers::ContainerOwner<
+      std::initializer_list<T>>>(std::move(init))) {}
 
   /*
-  Stream(std::initializer_list<T> init) :
-    source(std::make_unique<providers::Container>(std::move(init))) {}
-
   template <class Generator>
   Stream(Generator&& generator) :
     source(std::make_unique<providers::Generate>(
