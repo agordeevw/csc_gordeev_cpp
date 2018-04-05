@@ -43,12 +43,12 @@ public:
     source(std::make_unique<providers::Iterator<T, Iter>>(begin, end)) {}
 
   template <class Container,
-    std::enable_if_t<is_container_v<Container>>>
+    class = std::enable_if_t<is_container_v<Container>>>
   Stream(const Container& cont) :
     Stream(cont.begin(), cont.end()) {}
 
   template <class Container,
-    std::enable_if_t<is_container_v<Container>>>
+    class = std::enable_if_t<is_container_v<Container>>>
   Stream(Container&& cont) :
     source(std::make_unique<providers::ContainerOwner<Container>>(std::move(cont))) {}
   
@@ -57,7 +57,8 @@ public:
       std::initializer_list<T>>>(std::move(init))) {}
 
   template <class Generator, 
-    class = std::enable_if_t<std::is_invocable_v<Generator()>>>
+    class = std::enable_if_t<std::is_invocable_v<Generator()>>, 
+    class = int>
   Stream(Generator&& generator) :
     source(std::make_unique<providers::Generate<Generator>>(
       std::forward<Generator>(generator))) {}
@@ -99,11 +100,11 @@ private:
 
 template <class Iter> Stream(Iter, Iter) ->
   Stream<typename Iter::value_type>;
-template <class Container, std::enable_if_t<is_container_v<Container>>> Stream(const Container&) ->
+template <class Container, class = std::enable_if_t<is_container_v<Container>>> Stream(const Container&) ->
   Stream<typename Container::value_type>;
-template <class Container, std::enable_if_t<is_container_v<Container>>> Stream(Container&&) ->
+template <class Container, class = std::enable_if_t<is_container_v<Container>>> Stream(Container&&) ->
   Stream<typename Container::value_type>;
-template <class Generator, class = std::enable_if_t<std::is_invocable_v<Generator()>>> Stream(Generator&&) ->
+template <class Generator, class = std::enable_if_t<std::is_invocable_v<Generator()>>, class = int> Stream(Generator&&) ->
   Stream<std::result_of_t<Generator()>>;
 
 } // namespace stream
