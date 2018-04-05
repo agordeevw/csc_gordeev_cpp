@@ -32,6 +32,10 @@ namespace stream {
   auto reduce(Accumulator&& accum) {
     return reduce([](auto x){return x;}, std::forward<Accumulator>(accum));
   }
+
+  auto sum() {
+    return reduce([](auto x, auto y) { return x + y; });
+  }
   
 } // namespace stream
 
