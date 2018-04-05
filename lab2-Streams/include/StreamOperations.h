@@ -53,7 +53,7 @@ public:
   Terminator(F&& term) : term(std::forward<F>(term)) {}
 
   template <class T>
-  auto apply(Stream<T>&& stream) {
+  auto apply(Stream<T>&& stream) -> std::result_of_t<F(Stream<T>&&)> {
     return term(std::move(stream));
   }
 

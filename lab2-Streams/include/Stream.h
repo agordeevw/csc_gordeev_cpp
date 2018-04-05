@@ -88,12 +88,12 @@ public:
   }
 
   template <class F>
-  auto operator|(Terminator<F>&& term) {
+  auto operator|(Terminator<F>&& term) -> std::result_of_t<F(Stream<T>&&)> {
     return term.apply(std::move(*this));
   }
 
   template <class F>
-  auto operator|(Terminator<F>& term) {
+  auto operator|(Terminator<F>& term) -> std::result_of_t<F(Stream<T>&&)> {
     return term.apply(std::move(*this));
   }
 

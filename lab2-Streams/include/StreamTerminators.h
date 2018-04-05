@@ -2,6 +2,7 @@
 #define INCLUDE_STREAMTERMINATORS_H
 
 #include <stdexcept>
+#include <iostream>
 
 namespace stream {
   auto nth(std::size_t index) {
@@ -35,6 +36,16 @@ namespace stream {
 
   auto sum() {
     return reduce([](auto x, auto y) { return x + y; });
+  }
+
+  auto print_to(std::ostream& os, const char* delimiter = " ") {
+    return Terminator([&os, delimiter](auto&& stream) -> std::ostream& {
+      auto& source = stream.GetSource();
+      while(source->advance()) {
+        os << std::move(*source->get()) << delimiter;
+      }
+      return os;
+    });
   }
   
 } // namespace stream
