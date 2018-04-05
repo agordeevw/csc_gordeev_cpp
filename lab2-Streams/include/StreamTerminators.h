@@ -5,7 +5,7 @@
 
 namespace stream {
   auto nth(std::size_t index) {
-    return Terminator([=](auto&& stream) {
+    return Terminator([=](auto&& stream) mutable {
       auto& source = stream.GetSource();
       for (std::size_t cntr = 0; cntr < index; ++cntr)
         if (!source->advance())
@@ -14,6 +14,24 @@ namespace stream {
     });
   }
 
+  template <class Accumulator, class IdentityFn>
+  auto reduce(IdentityFn&& identityFn, Accumulator&& accum) {
+    return Terminator([=](auto&& stream) mutable {
+      auto id = std::forward<IdentityFn>(identityFn);
+      auto acc = std::forward<Accumulator>(accum);
+      auto& source = stream.GetSource();
+      auto result = id(std::move(*source->get()));
+      while (source->advance()) {
+        result = acc(result, std::move(*source->get()));
+      }
+      return result;
+    });
+  }
+
+  template <class Accumulator>
+  auto reduce(Accumulator&& accum) {
+    return reduce([](auto x){return x;}, std::forward<Accumulator>(accum));
+  }
   
 } // namespace stream
 
