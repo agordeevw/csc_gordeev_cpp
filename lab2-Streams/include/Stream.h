@@ -6,8 +6,8 @@
 namespace stream 
 {
 
-template <class T> class Operator;
-template <class T> class Terminator;
+template <class> class Operator;
+template <class> class Terminator;
 
 template <class T>
 class Stream
@@ -59,10 +59,10 @@ public:
     return term.apply(std::move(*this));
   }
 
-  std::unique_ptr<providers::StreamProvider<T>>& GetSource() { return source; }
+  StreamProviderPtr<T>& GetSource() { return source; }
 
 private:
-  std::unique_ptr<providers::StreamProvider<T>> source;
+  StreamProviderPtr<T> source;
 
   template<class> friend class Operator;
   template<class> friend class Terminator;

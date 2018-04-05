@@ -1,41 +1,42 @@
 #include <memory>
 
-namespace stream
+namespace stream {
+namespace providers {
+
+template<class T>
+class StreamProvider
 {
-namespace providers
+public:
+  virtual ~StreamProvider() = default;
+  virtual bool advance() = 0;
+  virtual std::shared_ptr<T> get() = 0;
+};
+
+template<class T, class Iter>
+class Iterator : public StreamProvider<T>
 {
-  template<class T>
-  class StreamProvider
-  {
-  public:
-    virtual ~StreamProvider() = default;
-    virtual bool advance() = 0;
-    virtual std::shared_ptr<T> get() = 0;
-  };
+public:
+  Iterator(Iter begin, Iter end) :
+    current(begin), end(end) {}
 
-  template<class T, class Iter>
-  class Iterator : public StreamProvider<T>
-  {
-  public:
-    Iterator(Iter begin, Iter end) :
-      current(begin), end(end) {}
+  virtual ~Iterator() = default;
 
-    virtual ~Iterator() = default;
+  bool advance() override {
+    ++current;
+    return current != end;
+  }
 
-    bool advance() override {
-      ++current;
-      return current != end;
-    }
+  std::shared_ptr<T> get() override {
+    return std::make_shared<T>(std::move(*current));
+  }
 
-    std::shared_ptr<T> get() override {
-      return std::make_shared<T>(std::move(*current));
-    }
-
-    Iter current;
-    Iter end;
-  };
-
+  Iter current;
+  Iter end;
+};
 
 } // namespace providers
+
+template <class T>
+using StreamProviderPtr = std::unique_ptr<providers::StreamProvider<T>>;
 
 } // namespace stream

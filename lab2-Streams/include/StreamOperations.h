@@ -53,7 +53,6 @@ public:
 
   template <class T>
   auto apply(Stream<T>&& stream) {
-    // TODO: Check if stream is empty
     return term(std::forward<Stream<T>>(stream));
   }
 
