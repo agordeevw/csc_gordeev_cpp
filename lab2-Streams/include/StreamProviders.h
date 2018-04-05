@@ -27,6 +27,10 @@ public:
   virtual ~Iterator() = default;
 
   bool advance() override {
+    if (first) {
+      first = false;
+      return current != end;
+    }
     ++current;
     return current != end;
   }
@@ -35,6 +39,7 @@ public:
     return std::make_shared<T>(std::move(*current));
   }
 
+  bool first = true;
   Iter current;
   Iter end;
 };
@@ -73,8 +78,7 @@ using T = std::result_of_t<Generator()>;
 
 public:
   Generate(Generator&& generator):
-    generator(std::forward<Generator>(generator)),
-    current(std::make_shared<T>(generator())) {}
+    generator(std::forward<Generator>(generator)) {}
 
   bool advance() override {
     current = std::make_shared<T>(generator());
@@ -88,6 +92,7 @@ public:
 private:
   Generator generator;
   std::shared_ptr<T> current;
+  bool first = true;
 };
 
 template <class T>
@@ -98,10 +103,9 @@ public:
     source(std::move(source)), n(n) {}
 
   bool advance() override {
-    if (current < n - 1) {
+    if (current < n) {
       ++current;
-      source->advance();
-      return true;
+      return source->advance();
     }
     return false;
   }
@@ -134,6 +138,34 @@ public:
 private:
   std::unique_ptr<StreamProvider<T>> source;
   Transform transform;
+};
+
+template <class T, class Predicate>
+class Filter : public StreamProvider<T>
+{
+public:
+  Filter(std::unique_ptr<StreamProvider<T>>&& source, Predicate&& predicate):
+    source(std::move(source)), predicate(std::forward<Predicate>(predicate)) {}
+
+  bool advance() override {
+    while (source->advance()) {
+      current = source->get();
+      if (predicate(*current))
+        return true;
+    }
+    current.reset();
+    return false;
+  }
+
+  std::shared_ptr<T> get() override {
+    return current;
+  }
+
+private:
+  std::unique_ptr<StreamProvider<T>> source;
+  std::shared_ptr<T> current;
+  Predicate predicate;
+  bool first = true;
 };
 
 } // namespace providers

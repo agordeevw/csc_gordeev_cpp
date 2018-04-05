@@ -27,6 +27,16 @@ namespace stream {
           std::move(stream.GetSource()), std::forward<Transform>(transform))));
     });
   }
+
+  template <class Predicate>
+  auto filter(Predicate&& predicate) {
+    return Operator([=] (auto&& stream) mutable {
+      using T = typename std::remove_reference_t<decltype(stream)>::value_type;
+      return Stream<T>(std::move(
+        std::make_unique<providers::Filter<T, Predicate>>(
+          std::move(stream.GetSource()), std::forward<Predicate>(predicate))));
+    });
+  }
 } // namespace stream
 
 #endif
