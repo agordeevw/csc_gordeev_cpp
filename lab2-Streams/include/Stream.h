@@ -61,21 +61,19 @@ public:
     source(std::make_unique<providers::ContainerOwner<
       std::initializer_list<T>>>(std::move(init))) {}
 
-  /*template <class Generator, 
-    class = std::enable_if_t<std::is_invocable_v<Generator()>>, 
-    class = int>
-  Stream(Generator&& generator) :
-    source(std::make_unique<providers::Generate<Generator>>(
-      std::forward<Generator>(generator))) {}*/
-
   Stream(std::unique_ptr<providers::StreamProvider<T>>&& source) : 
     source(std::move(source)) {}
 
-  /*
-  template <class ...Args>
-  Stream(Args... args)
-    source(std::make_unique<providers::Pack>(args...)) {};
-  */
+  template <class Generator, 
+    class = std::enable_if_t<std::is_member_function_pointer_v<decltype(&(Generator::operator()))>>, 
+    class = int>
+  Stream(Generator&& generator) :
+    source(std::make_unique<providers::Generate<Generator>>(
+      std::forward<Generator>(generator))) {}
+
+  /*template <class T, class ...Args>
+  Stream(T t, Args... args)
+    source(std::make_unique<providers::Pack>(args...)) {};*/
 
   template <class F>
   auto operator|(Operator<F>&& op) {
