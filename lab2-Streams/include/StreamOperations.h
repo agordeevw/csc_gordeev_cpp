@@ -1,4 +1,5 @@
-
+#ifndef INCLUDE_STREAMOPERATIONS_H
+#define INCLUDE_STREAMOPERATIONS_H
 
 namespace stream
 {
@@ -26,7 +27,7 @@ public:
 
   template <class T>
   auto apply(Stream<T>&& stream) {
-    return op(std::forward<Stream<T>>(stream));
+    return op(std::move(stream));
   }
 
   template <class G>
@@ -53,7 +54,7 @@ public:
 
   template <class T>
   auto apply(Stream<T>&& stream) {
-    return term(std::forward<Stream<T>>(stream));
+    return term(std::move(stream));
   }
 
   template<typename> friend class Operator;
@@ -64,3 +65,4 @@ private:
 
 } // namespace stream
 
+#endif

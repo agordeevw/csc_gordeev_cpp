@@ -1,3 +1,6 @@
+#ifndef INCLUDE_STREAM_H
+#define INCLUDE_STREAM_H
+
 #include <memory>
 #include <utility>
 #include <type_traits>
@@ -38,6 +41,8 @@ template <class T>
 class Stream
 {
 public:
+  using value_type = T;
+
   template <class Iter>
   Stream(Iter begin, Iter end) :
     source(std::make_unique<providers::Iterator<T, Iter>>(begin, end)) {}
@@ -56,12 +61,15 @@ public:
     source(std::make_unique<providers::ContainerOwner<
       std::initializer_list<T>>>(std::move(init))) {}
 
-  template <class Generator, 
+  /*template <class Generator, 
     class = std::enable_if_t<std::is_invocable_v<Generator()>>, 
     class = int>
   Stream(Generator&& generator) :
     source(std::make_unique<providers::Generate<Generator>>(
-      std::forward<Generator>(generator))) {}
+      std::forward<Generator>(generator))) {}*/
+
+  Stream(std::unique_ptr<providers::StreamProvider<T>>&& source) : 
+    source(std::move(source)) {}
 
   /*
   template <class ...Args>
@@ -111,3 +119,6 @@ template <class Generator, class = std::enable_if_t<std::is_invocable_v<Generato
 
 #include "StreamOperations.h"
 #include "StreamOperators.h"
+#include "StreamTerminators.h"
+
+#endif

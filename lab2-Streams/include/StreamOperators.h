@@ -1,13 +1,21 @@
+#ifndef INCLUDE_STREAMOPERATORS_H
+#define INCLUDE_STREAMOPERATORS_H
+
 #include <stdexcept>
+#include <type_traits>
+
+#include "StreamProviders.h"
 
 namespace stream {
-  auto nth(std::size_t index) {
-    return Terminator([=](auto&& stream) {
-      auto& source = stream.GetSource();
-      for (std::size_t cntr = 0; cntr < index; ++cntr)
-        if (!source->advance())
-          throw std::runtime_error("ERROR::stream::nth: Unexpected end of stream");
-      return std::move(*source->get());
+  auto get(std::size_t n) {
+    return Operator([=](auto&& stream) {
+      using T = typename std::remove_reference_t<decltype(stream)>::value_type;
+      return Stream<T>(std::move(
+        std::make_unique<providers::Get<T>>(
+          std::move(stream.GetSource()), n)));
     });
   }
+  
 } // namespace stream
+
+#endif

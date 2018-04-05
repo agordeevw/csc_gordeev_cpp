@@ -1,7 +1,11 @@
+#ifndef INCLUDE_STREAMPROVIDERS_H
+#define INCLUDE_STREAMPROVIDERS_H
+
 #include <memory>
 #include <type_traits>
 
 namespace stream {
+
 namespace providers {
 
 template<class T>
@@ -86,9 +90,37 @@ private:
   std::shared_ptr<T> current;
 };
 
+template <class T>
+class Get : public StreamProvider<T> 
+{
+public:
+  Get(std::unique_ptr<StreamProvider<T>>&& source, std::size_t n):
+    source(std::move(source)), n(n) {}
+
+  bool advance() override {
+    if (current < n - 1) {
+      ++current;
+      source->advance();
+      return true;
+    }
+    return false;
+  }
+
+  std::shared_ptr<T> get() override {
+    return source->get();
+  }
+
+private:
+  std::unique_ptr<StreamProvider<T>> source;
+  std::size_t n;
+  std::size_t current = 0;
+};
+
 } // namespace providers
 
 template <class T>
 using StreamProviderPtr = std::unique_ptr<providers::StreamProvider<T>>;
 
 } // namespace stream
+
+#endif
