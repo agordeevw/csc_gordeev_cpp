@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <type_traits>
+#include <list>
 
 namespace stream {
 
@@ -44,19 +45,19 @@ public:
   Iter end;
 };
 
-template<class Container>
+template<class Container, class InternalStreamProvider = 
+    providers::Iterator<
+    typename Container::value_type,
+    typename Container::iterator>>
 class ContainerOwner : public StreamProvider<typename Container::value_type>
 {
-using InternalStreamProvider = 
-  providers::Iterator<
-    typename Container::value_type,
-    typename Container::iterator>;
-
 public:
   ContainerOwner(Container&& cont) :
     container(std::move(cont)),
     source(std::make_unique<InternalStreamProvider>(
       container.begin(), container.end())) {}
+
+  virtual ~ContainerOwner() = default;
 
   bool advance() override {
     return source->advance();
@@ -80,6 +81,8 @@ public:
   Generate(Generator&& generator):
     generator(std::forward<Generator>(generator)) {}
 
+  virtual ~Generate() = default;
+
   bool advance() override {
     current = std::make_shared<T>(generator());
     return true;
@@ -92,7 +95,6 @@ public:
 private:
   Generator generator;
   std::shared_ptr<T> current;
-  bool first = true;
 };
 
 template <class T>
@@ -101,6 +103,8 @@ class Get : public StreamProvider<T>
 public:
   Get(std::unique_ptr<StreamProvider<T>>&& source, std::size_t n):
     source(std::move(source)), n(n) {}
+
+  virtual ~Get() = default;
 
   bool advance() override {
     if (current < n) {
@@ -127,6 +131,8 @@ public:
   Map(std::unique_ptr<StreamProvider<T>>&& source, Transform&& transform):
     source(std::move(source)), transform(std::forward<Transform>(transform)) {}
 
+  virtual ~Map() = default;
+
   bool advance() override {
     return source->advance();
   }
@@ -146,6 +152,8 @@ class Filter : public StreamProvider<T>
 public:
   Filter(std::unique_ptr<StreamProvider<T>>&& source, Predicate&& predicate):
     source(std::move(source)), predicate(std::forward<Predicate>(predicate)) {}
+
+  virtual ~Filter() = default;
 
   bool advance() override {
     while (source->advance()) {
@@ -174,6 +182,8 @@ class Group : public StreamProvider<std::vector<T>>
 public:
   Group(std::unique_ptr<StreamProvider<T>>&& source, size_t group_size) :
     source(std::move(source)), group_size(group_size) {}
+
+  virtual ~Group() = default;
 
   bool advance() override {
     if (stream_ended) {

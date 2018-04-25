@@ -8,7 +8,7 @@ namespace stream {
   auto nth(std::size_t index) {
     return Terminator([=](auto&& stream) mutable {
       auto& source = stream.GetSource();
-      for (std::size_t cntr = 0; cntr < index + 1; ++cntr)
+      for (std::size_t cntr = 0; cntr <= index; ++cntr)
         if (!source->advance())
           throw std::runtime_error("ERROR::stream::nth: Unexpected end of stream");
       return std::move(*source->get());
@@ -21,6 +21,8 @@ namespace stream {
       auto id = std::forward<IdentityFn>(identityFn);
       auto acc = std::forward<Accumulator>(accum);
       auto& source = stream.GetSource();
+      if (!source->advance())
+        throw std::runtime_error("ERROR::stream::reduce: Empty stream");
       auto result = id(std::move(*source->get()));
       while (source->advance()) {
         result = acc(result, std::move(*source->get()));
@@ -31,7 +33,7 @@ namespace stream {
 
   template <class Accumulator>
   auto reduce(Accumulator&& accum) {
-    return reduce([](auto x){return x;}, std::forward<Accumulator>(accum));
+    return reduce([](auto x){ return x; }, std::forward<Accumulator>(accum));
   }
 
   auto sum() {
@@ -41,8 +43,11 @@ namespace stream {
   auto print_to(std::ostream& os, const char* delimiter = " ") {
     return Terminator([&os, delimiter](auto&& stream) -> std::ostream& {
       auto& source = stream.GetSource();
+      if (source->advance()) {
+        os << std::move(*source->get());
+      }
       while(source->advance()) {
-        os << std::move(*source->get()) << delimiter;
+        os << delimiter << std::move(*source->get());
       }
       return os;
     });
@@ -59,7 +64,6 @@ namespace stream {
       return result;
     });
   }
-  
 } // namespace stream
 
 #endif
