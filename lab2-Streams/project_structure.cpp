@@ -59,9 +59,6 @@ namespace stream
         template <class Provider>
         struct is_finite<Get<Provider>>;
 
-        template <class Provider>
-        struct is_finite<Skip<Provider>>;
-
         template <class Provider, class Transform>;
         struct is_finite<Map<Provider, Transform>>;
 
