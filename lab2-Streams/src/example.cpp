@@ -14,13 +14,6 @@ struct Rand {
   int operator()() { return rand(); }
 };
 
-std::ostream& operator<<(std::ostream&os, const std::vector<int>& v) {
-  for (auto val: v) {
-    os << val << ' ';
-  }
-  return os;
-}
-
 int main(int, char**)
 {
   using namespace stream;
@@ -97,7 +90,11 @@ int main(int, char**)
 
     std::cout << "operator to_vector:\n";
     Stream s_tovec(1, 2, 3, 4, 5);
-    std::cout << (s_tovec | to_vector()) << std::endl;
+    auto s_vec = s_tovec | to_vector();
+    std::ostream_iterator<int> os_it(std::cout, ", ");
+    for (auto val : s_vec)
+        os_it = val;
+    std::cout << std::endl;
 
     std::cout << "operator nth:\n";
     Stream s_nth(0,0,0,1,0);
