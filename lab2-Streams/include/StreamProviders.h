@@ -325,6 +325,10 @@ private:
 public:
   static constexpr bool value = DetermineValue();
 };
+
+template <class Provider>
+constexpr bool is_finite_v = is_finite<Provider>::value;
+ 
 } // namespace traits
 
 } // namespace providers
