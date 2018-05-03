@@ -42,9 +42,6 @@ namespace stream
       template <class Provider>
       class Get;
 
-      template <class Provider>
-      class Skip;
-
       template <class Provider, class Transform>
       class Map;
 
