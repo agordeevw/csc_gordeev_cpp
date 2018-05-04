@@ -54,6 +54,9 @@ class Stream
 {
 public:
   using value_type = typename Provider::value_type;
+  static_assert(providers::traits::is_provider_v<Provider>,
+    "Stream provider type is not one of known provider types, "
+    "consider implementing provider interface");
 
   template <class Iterator>
   Stream(std::enable_if_t
@@ -87,10 +90,8 @@ public:
   Stream(T arg, Args ... args) :
   provider(util::CreateListFrom(arg, args...)) {}
 
-  Stream(Provider&& provider) : 
+  Stream(Provider&& provider) :
   provider(std::forward<Provider>(provider)) {}
-
-  Stream(Stream<Provider>&& stream) : provider(std::move(stream.provider)) {}
 
   template <class F>
   auto operator|(Operator<F>&& op) {

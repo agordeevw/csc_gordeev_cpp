@@ -14,6 +14,7 @@ public:
   template <class Provider>
   auto operator()(Stream<Provider>&& stream) {
     using provider_type = providers::composite::Get<Provider>;
+
     return Stream(provider_type(std::move(stream.GetProvider()),
       amount
     ));
@@ -51,6 +52,7 @@ public:
   template <class Provider>
   auto operator()(Stream<Provider>&& stream) {
     using provider_type = providers::composite::Map<Provider, Transform>;
+
     return Stream(provider_type(std::move(stream.GetProvider()), 
       std::move(transform)
     ));
@@ -71,6 +73,7 @@ public:
   template <class Provider> 
   auto operator() (Stream<Provider>&& stream) {
     using provider_type = providers::composite::Filter<Provider, Predicate>;
+
     return Stream(provider_type(std::move(stream.GetProvider()),
       std::move(predicate)
     ));
@@ -88,6 +91,7 @@ public:
   template <class Provider>
   auto operator() (Stream<Provider>&& stream) {
     using provider_type = providers::composite::Group<Provider>;
+
     return Stream(provider_type(std::move(stream.GetProvider()),
       size
     ));

@@ -22,9 +22,9 @@ public:
     auto& provider = stream.GetProvider();
     if (!provider.Advance())
       throw providers::EmptyStreamException();
-    auto result = identityFn(std::move(*provider.Get()));
+    auto result = identityFn(std::move(*provider.GetValue()));
     while (provider.Advance())
-      result = accum(result, std::move(*provider.Get()));
+      result = accum(result, std::move(*provider.GetValue()));
     return result;
   }
 
@@ -45,9 +45,9 @@ public:
 
     if (!provider.Advance())
       throw providers::EmptyStreamException();
-    os << std::move(*provider.Get());
+    os << std::move(*provider.GetValue());
     while (provider.Advance())
-      os << delimiter << std::move(*provider.Get());
+      os << delimiter << std::move(*provider.GetValue());
     return os;
   }
 
@@ -66,7 +66,7 @@ public:
     auto& provider = stream.GetProvider();
     std::vector<typename Provider::value_type> result;
     while (provider.Advance())
-      result.emplace_back(std::move(*provider.Get()));
+      result.emplace_back(std::move(*provider.GetValue()));
     return result;
   }
 };
@@ -82,7 +82,7 @@ public:
     for (size_t i = 0; i <= index; ++i)
       if (!provider.Advance())
         throw providers::EmptyStreamException();
-    return std::move(*provider.Get());
+    return std::move(*provider.GetValue());
   }
 
 private:

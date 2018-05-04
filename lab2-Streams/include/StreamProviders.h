@@ -22,10 +22,14 @@ class ProviderInterface
 {
 public:
   bool Advance() {
-    return static_cast<Derived*>(this)->AdvanceImpl();
+    return Impl().Advance();
   }
-  auto Get() {
-    return static_cast<Derived*>(this)->GetImpl();
+  auto GetValue() {
+    return Impl().Get();
+  }
+
+  ProviderInterface& Impl() {
+    return static_cast<Derived&>(*this);
   }
 };
 
@@ -41,7 +45,7 @@ public:
   current(begin), end(end)
   {}
 
-  bool AdvanceImpl() {
+  bool Advance() {
     if (first) {
       first = false;
       return current != end;
@@ -50,7 +54,7 @@ public:
     return current != end;
   }
 
-  std::shared_ptr<value_type> GetImpl() {
+  std::shared_ptr<value_type> GetValue() {
     return std::make_shared<value_type>(std::move(*current));
   }
 
@@ -70,12 +74,12 @@ public:
   generator(std::forward<GeneratorType>(generator))
   {}
 
-  bool AdvanceImpl() {
+  bool Advance() {
     current = std::make_shared<value_type>(generator());
     return true;
   }
 
-  std::shared_ptr<value_type> GetImpl() {
+  std::shared_ptr<value_type> GetValue() {
     return current;
   }
 
@@ -95,9 +99,13 @@ public:
   provider(this->container.begin(), this->container.end())
   {}
 
-  bool AdvanceImpl() { return provider.Advance(); }
+  bool Advance() {
+    return provider.Advance();
+  }
 
-  std::shared_ptr<value_type> GetImpl() { return provider.Get(); }
+  std::shared_ptr<value_type> GetValue() {
+    return provider.GetValue();
+  }
 
 private:
   ContainerType container;
@@ -107,28 +115,24 @@ private:
 namespace traits {
 
 template <class Provider>
-struct is_finite
-{
-  static constexpr std::optional<bool> optvalue = std::nullopt;
-};
+struct is_finite {};
 
 template <class IteratorType>
-struct is_finite<Iterator<IteratorType>>
-{
-  static constexpr std::optional<bool> optvalue = true;
-};
+struct is_finite<Iterator<IteratorType>> : std::true_type {};
 
 template <class GeneratorType>
-struct is_finite<Generator<GeneratorType>>
-{
-  static constexpr std::optional<bool> optvalue = false;
-};
+struct is_finite<Generator<GeneratorType>> : std::false_type {};
 
 template <class ContainerType>
-struct is_finite<Container<ContainerType>>
-{
-  static constexpr std::optional<bool> optvalue = true;
-};
+struct is_finite<Container<ContainerType>> : std::true_type {};
+
+template <class Provider>
+constexpr bool is_finite_v = is_finite<Provider>::value;
+
+template <class T>
+struct is_provider : std::bool_constant<
+  std::is_convertible_v<T, ProviderInterface<T>>
+> {};
 
 } // namespace traits
 } // namespace core
@@ -140,11 +144,21 @@ class CompositeProvider :
 public ProviderInterface<CompositeProvider<Provider, Derived>>
 {
 public:
-  using value_type = typename Derived::value_type;
-
   CompositeProvider(Provider&& provider) :
   provider(std::move(provider)) // or forward?
   {}
+
+  auto Advance() {
+    return Impl().Advance();
+  }
+
+  auto GetValue() {
+    return Impl().GetValue();
+  }
+
+  CompositeProvider& Impl() {
+    return static_cast<Derived&>(*this);
+  }
 
 protected:
   Provider provider;
@@ -161,7 +175,7 @@ public:
   amount(amount)
   {}
 
-  bool AdvanceImpl() {
+  bool Advance() {
     if (current < amount) {
       ++current;
       return this->provider.Advance();
@@ -169,8 +183,8 @@ public:
     return false;
   }
 
-  std::shared_ptr<value_type> GetImpl() {
-    return this->provider.Get();
+  std::shared_ptr<value_type> GetValue() {
+    return this->provider.GetValue();
   }
 
 private:
@@ -189,11 +203,11 @@ public:
   transform(std::forward<Transform>(transform))
   {}
 
-  bool AdvanceImpl() {
+  bool Advance() {
     return this->provider.Advance();
   }
 
-  std::shared_ptr<value_type> GetImpl() {
+  std::shared_ptr<value_type> GetValue() {
     return std::make_shared<value_type>(
       transform(std::move(*this->provider.Get())));
   }
@@ -213,9 +227,9 @@ public:
   predicate(std::forward<Predicate>(predicate))
   {}
 
-  bool AdvanceImpl() {
+  bool Advance() {
     while (this->provider.Advance()) {
-      current = this->provider.Get();
+      current = this->provider.GetValue();
       if (predicate(*current))
         return true;
     }
@@ -223,7 +237,7 @@ public:
     return false;
   }
 
-  std::shared_ptr<value_type> GetImpl() {
+  std::shared_ptr<value_type> GetValue() {
     return current;
   }
 
@@ -243,7 +257,7 @@ public:
   size(size)
   {}
 
-  bool AdvanceImpl() {
+  bool Advance() {
     if (streamEnded) {
       current.reset();
       return false;
@@ -251,7 +265,7 @@ public:
     current = std::make_shared<value_type>();
     for (size_t i = 0; i < size; ++i) {
       if (this->provider.Advance()) {
-        current->emplace_back(std::move(*this->provider.Get()));
+        current->emplace_back(std::move(*this->provider.GetValue()));
       } else {
         streamEnded = true;
         break;
@@ -260,7 +274,7 @@ public:
     return true;
   }
 
-  std::shared_ptr<value_type> GetImpl() {
+  std::shared_ptr<value_type> GetValue() {
     return current;
   }
 
@@ -273,37 +287,31 @@ private:
 namespace traits {
 
 template <class Provider>
-struct is_finite
-{
-  static constexpr std::optional<bool> optvalue = std::nullopt;
-};
+struct is_finite {};
 
 template <class Provider>
-struct is_finite<Get<Provider>>
-{
-  static constexpr std::optional<bool> optvalue = true;
-};
+struct is_finite<Get<Provider>> : std::true_type {};
 
 template <class Provider, class Transform>
-struct is_finite<Map<Provider, Transform>>
-{
-  static constexpr std::optional<bool> optvalue =
-    is_finite<Provider>::optvalue;
-};
+struct is_finite<Map<Provider, Transform>> :
+is_finite<Provider>, core::traits::is_finite<Provider> {};
 
 template <class Provider, class Predicate>
-struct is_finite<Filter<Provider, Predicate>>
-{
-  static constexpr std::optional<bool> optvalue = 
-    is_finite<Provider>::optvalue;
-};
+struct is_finite<Filter<Provider, Predicate>> :
+is_finite<Provider>, core::traits::is_finite<Provider> {};
 
 template <class Provider>
-struct is_finite<Group<Provider>>
-{
-  static constexpr std::optional<bool> optvalue =
-    is_finite<Provider>::optvalue;
-};
+struct is_finite<Group<Provider>> :
+is_finite<Provider>, core::traits::is_finite<Provider> {};
+
+template <class T>
+struct is_provider : std::false_type {};
+
+template <template <class...> class A, class P, class ... Ts>
+struct is_provider<A<P, Ts...>> : std::bool_constant<
+  std::is_convertible_v<A<P, Ts...>, CompositeProvider<P, A<P, Ts...>>>
+  && (is_provider<P>::value || core::traits::is_provider<P>::value)
+> {};
 
 } // namespace traits
 } // namespace composite
@@ -311,29 +319,22 @@ struct is_finite<Group<Provider>>
 namespace traits {
 
 template <class Provider>
-struct is_finite
-{
-private:
-  static constexpr bool DetermineValue() {
-    constexpr auto coreValue = 
-      core::traits::is_finite<Provider>::optvalue;
-    constexpr auto compValue = 
-      composite::traits::is_finite<Provider>::optvalue;
-    static_assert(coreValue.has_value() || compValue.has_value(),
-        "Provider type doesn\'t match with known types");
-    if constexpr(coreValue.has_value())
-      return coreValue.value();
-    if constexpr(compValue.has_value())
-      return compValue.value();
-  }
-
-public:
-  static constexpr bool value = DetermineValue();
-};
+struct is_finite : 
+core::traits::is_finite<Provider>,
+composite::traits::is_finite<Provider> {};
 
 template <class Provider>
 constexpr bool is_finite_v = is_finite<Provider>::value;
- 
+
+template <class T>
+struct is_provider : std::bool_constant<
+  core::traits::is_provider<T>::value
+  || composite::traits::is_provider<T>::value
+> {};
+
+template <class T>
+constexpr bool is_provider_v = is_provider<T>::value;
+
 } // namespace traits
 
 } // namespace providers
