@@ -1,69 +1,90 @@
 #ifndef INCLUDE_STREAMTERMINATORS_H
 #define INCLUDE_STREAMTERMINATORS_H
 
-#include <stdexcept>
 #include <iostream>
 
 namespace stream {
-  auto nth(std::size_t index) {
-    return Terminator([=](auto&& stream) mutable {
-      auto& source = stream.GetSource();
-      for (std::size_t cntr = 0; cntr <= index; ++cntr)
-        if (!source->advance())
-          throw std::runtime_error("ERROR::stream::nth: Unexpected end of stream");
-      return std::move(*source->get());
-    });
+namespace terminators {
+
+template <class IdentityFn, class Accumulator>
+class Reduce
+{
+public:
+  (IdentityFn&& identityFn, Accumulator&& accum) :
+  identityFn(std::forward<IdentityFn>(identityFn)),
+  accum(std::forward<Accumulator>(accum))
+  {}
+
+  template <class Provider>
+  auto operator()(Stream<Provider>&& stream) {
+    auto& provider = stream.GetProvider();
+    if (!provider.Advance())
+      throw EmptyStreamException();
+    auto result = identityFn(std::move(*provider.Get()));
+    while (provider.Advance())
+      result = accum(result, std::move(*provider.Get()));
+    return result;
   }
 
-  template <class Accumulator, class IdentityFn>
-  auto reduce(IdentityFn&& identityFn, Accumulator&& accum) {
-    return Terminator([=](auto&& stream) mutable {
-      auto id = std::forward<IdentityFn>(identityFn);
-      auto acc = std::forward<Accumulator>(accum);
-      auto& source = stream.GetSource();
-      if (!source->advance())
-        throw std::runtime_error("ERROR::stream::reduce: Empty stream");
-      auto result = id(std::move(*source->get()));
-      while (source->advance()) {
-        result = acc(result, std::move(*source->get()));
-      }
-      return result;
-    });
+private:
+  IdentityFn identityFn;
+  Accumulator accum;
+};
+
+class PrintTo
+{
+public:
+  PrintTo(std::ostream& os, const char* delimiter = " ") : 
+  os(os), delimiter(delimiter) {}
+
+  template <class Provider>
+  std::ostream& operator()(Stream<Provider>&& stream) {
+    auto& provider = stream.GetProvider();
+
+    if (!provider.Advance())
+      throw EmptyStreamException();
+    os << std::move(*provider.Get());
+    while (provider.Advance())
+      os << delimiter << std::move(*provider.Get());
+    return os;
   }
 
-  template <class Accumulator>
-  auto reduce(Accumulator&& accum) {
-    return reduce([](auto x){ return x; }, std::forward<Accumulator>(accum));
-  }
+private:
+  std::ostream& os;
+  const char* delimiter;
+};
 
-  auto sum() {
-    return reduce([](auto x, auto y) { return x + y; });
-  }
+class ToVector
+{
+public:
+  ToVector() {}
 
-  auto print_to(std::ostream& os, const char* delimiter = " ") {
-    return Terminator([&os, delimiter](auto&& stream) -> std::ostream& {
-      auto& source = stream.GetSource();
-      if (source->advance()) {
-        os << std::move(*source->get());
-      }
-      while(source->advance()) {
-        os << delimiter << std::move(*source->get());
-      }
-      return os;
-    });
+  template <class Provider>
+  auto operator()(Stream<Provider>&& stream) {
+    auto& provider = stream.GetProvider();
+    std::vector<typename Provider::value_type> result;
+    while (provider.Advance())
+      result.emplace_back(std::move(*provider.Get()));
+    return result;
   }
+};
 
-  auto to_vector() {
-    return Terminator([=](auto&& stream) mutable {
-      using T = typename std::remove_reference_t<decltype(stream)>::value_type;
-      auto& source = stream.GetSource();
-      std::vector<T> result;
-      while(source->advance()) {
-        result.emplace_back(std::move(*source->get()));
-      }
-      return result;
-    });
+class Nth
+{
+public:
+  Nth(size_t index) : index(index) {}
+
+  template <class Provider>
+  auto operator()(Stream<Provider>&& stream) {
+    auto& provider = stream.GetProvider();
+    for (size_t i = 0; i <= index; ++i)
+      if (!provider.Advance())
+        throw EmptyStreamException();
+    return std::move(*provider.Get());
   }
+};
+
+} // namespace terminators
 } // namespace stream
 
 #endif
