@@ -50,7 +50,7 @@ private:
   }
 
   std::shared_ptr<value_type> GetImpl() {
-    return std::make_shared<value_type>(*current);
+    return std::make_shared<value_type>(std::move(*current));
   }
 
   bool first = true;
@@ -191,7 +191,8 @@ private:
   }
 
   std::shared_ptr<value_type> GetImpl() {
-    return std::make_shared<value_type>(transform(*provider.Get()));
+    return std::make_shared<value_type>(
+      transform(std::move(*provider.Get())));
   }
 
   Transform transform;
