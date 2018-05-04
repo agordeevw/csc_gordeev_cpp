@@ -13,7 +13,7 @@ public:
 
   template <class Provider>
   auto operator()(Stream<Provider>&& stream) {
-    using provider_type = providers::composite::Get;
+    using provider_type = providers::composite::Get<Provider>;
     return Stream(provider_type(std::move(stream.GetProvider()),
       amount
     ));
@@ -32,9 +32,12 @@ public:
   auto operator()(Stream<Provider>&& stream) {
     auto& provider = stream.GetProvider();
     for (size_t i = 0; i < amount; ++i)
-      provider.Advance()
+      provider.Advance();
     return Stream(std::move(stream.GetProvider()));
   }
+
+private:
+  size_t amount;
 };
 
 template <class Transform>
@@ -47,7 +50,7 @@ public:
 
   template <class Provider>
   auto operator()(Stream<Provider>&& stream) {
-    using provider_type = providers::composite::Map;
+    using provider_type = providers::composite::Map<Provider, Transform>;
     return Stream(provider_type(std::move(stream.GetProvider()), 
       std::move(transform)
     ));
@@ -61,13 +64,13 @@ template <class Predicate>
 class Filter
 {
 public:
-  Filter(Predicate&& Predicate) :
+  Filter(Predicate&& predicate) :
   predicate(std::forward<Predicate>(predicate))
   {}
 
   template <class Provider> 
   auto operator() (Stream<Provider>&& stream) {
-    using provider_type = providers::composite::Filter;
+    using provider_type = providers::composite::Filter<Provider, Predicate>;
     return Stream(provider_type(std::move(stream.GetProvider()),
       std::move(predicate)
     ));
@@ -84,7 +87,7 @@ public:
 
   template <class Provider>
   auto operator() (Stream<Provider>&& stream) {
-    using provider_type = providers::composite::Group;
+    using provider_type = providers::composite::Group<Provider>;
     return Stream(provider_type(std::move(stream.GetProvider()),
       size
     ));
@@ -107,7 +110,7 @@ auto map(Transform&& transform) {
 
 template <class Predicate>
 auto filter(Predicate&& predicate) {
-  return Operator(operators::Predicate(std::forward<Predicate>(predicate)));
+  return Operator(operators::Filter(std::forward<Predicate>(predicate)));
 }
 
 auto skip(size_t amount) {

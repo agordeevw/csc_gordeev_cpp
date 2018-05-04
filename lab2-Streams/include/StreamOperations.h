@@ -30,7 +30,7 @@ namespace operators {
 } // namespace operators
 
 namespace terminators {
-  template <class, class> Reduce;
+  template <class, class> class Reduce;
   class PrintTo;
   class ToVector;
   class Nth;
@@ -45,7 +45,7 @@ namespace terminators {
     template <class Term, class Op>
     struct supports_infinite_helper<Compose<Term, Op>> {
       static constexpr std::optional<bool> optvalue = 
-        supports_infinite<Term>::value;
+        supports_infinite_helper<Term>::optvalue;
     };
 
     template <class I, class A>
@@ -64,7 +64,7 @@ namespace terminators {
     };
 
     template <>
-    struct supports_infinite_helper<NthTerminator> {
+    struct supports_infinite_helper<Nth> {
       static constexpr std::optional<bool> optvalue = true;
     };
 
@@ -75,8 +75,7 @@ namespace terminators {
         constexpr auto optvalue = 
           supports_infinite_helper<Term>::optvalue;
         static_assert(optvalue.has_value(),
-          "Terminator type doesn\' match with known types,
-          consider implementing corresponding traits");
+          "Terminator type doesn\' match with known types");
         return optvalue.value();
       }
     public:
@@ -124,7 +123,7 @@ public:
 
   template <class Provider>
   auto Apply(Stream<Provider>&& stream) -> 
-  std::invoke_result_t<F, Stream<T>&&> {
+  std::invoke_result_t<F, Stream<Provider>&&> {
     static_assert(
       providers::traits::is_finite_v<Provider>
       || terminators::traits::supports_infinite_v<F>,

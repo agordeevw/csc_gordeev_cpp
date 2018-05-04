@@ -14,17 +14,19 @@ class EmptyStreamException : public std::logic_error
 {
 public:
   EmptyStreamException() : 
-  std::logic_error("ERROR: Empty stream") {};
+  std::logic_error("Empty stream") {};
 };
 
 template <class Derived>
 class ProviderInterface
 {
 public:
-  using value_type = typename Derived::value_type;
-
-  bool Advance() { return AdvanceImpl(); }
-  std::shared_ptr<value_type> Get() { return GetImpl(); }
+  bool Advance() {
+    return static_cast<Derived*>(this)->AdvanceImpl();
+  }
+  auto Get() {
+    return static_cast<Derived*>(this)->GetImpl();
+  }
 };
 
 namespace core {
@@ -39,7 +41,6 @@ public:
   current(begin), end(end)
   {}
 
-private:
   bool AdvanceImpl() {
     if (first) {
       first = false;
@@ -53,9 +54,10 @@ private:
     return std::make_shared<value_type>(std::move(*current));
   }
 
+private:
   bool first = true;
-  Iter current;
-  Iter end;
+  IteratorType current;
+  IteratorType end;
 };
 
 template <class GeneratorType>
@@ -68,9 +70,8 @@ public:
   generator(std::forward<GeneratorType>(generator))
   {}
 
-private:
   bool AdvanceImpl() {
-    current = std::make_shared<T>(generator());
+    current = std::make_shared<value_type>(generator());
     return true;
   }
 
@@ -78,6 +79,7 @@ private:
     return current;
   }
 
+private:
   GeneratorType generator;
   std::shared_ptr<value_type> current;
 };
@@ -93,11 +95,11 @@ public:
   provider(this->container.begin(), this->container.end())
   {}
 
-private:
   bool AdvanceImpl() { return provider.Advance(); }
 
   std::shared_ptr<value_type> GetImpl() { return provider.Get(); }
 
+private:
   ContainerType container;
   Iterator<typename ContainerType::iterator> provider;
 };
@@ -126,7 +128,7 @@ template <class ContainerType>
 struct is_finite<Container<ContainerType>>
 {
   static constexpr std::optional<bool> optvalue = true;
-}
+};
 
 } // namespace traits
 } // namespace core
@@ -155,22 +157,24 @@ public:
   using value_type = typename Provider::value_type;
 
   Get(Provider&& provider, size_t amount) :
-  CompositeProvider(std::move(provider)), amount(amount)
+  CompositeProvider<Provider, Get<Provider>>(std::move(provider)), 
+  amount(amount)
   {}
 
-private:
   bool AdvanceImpl() {
     if (current < amount) {
       ++current;
-      return provider.Advance();
+      return this->provider.Advance();
     }
     return false;
   }
 
-  std::shared_ptr<value_type> AdvanceImpl() {
-    return provider.Get();
+  std::shared_ptr<value_type> GetImpl() {
+    return this->provider.Get();
   }
 
+private:
+  size_t current = 0;
   size_t amount;
 };
 
@@ -178,23 +182,23 @@ template <class Provider, class Transform>
 class Map final : public CompositeProvider<Provider, Map<Provider, Transform>>
 {
 public:
-  using value_type = std::invoke_result_t<Transform, typename Provider::value_type>>;
+  using value_type = std::invoke_result_t<Transform, typename Provider::value_type>;
 
   Map(Provider&& provider, Transform&& transform) :
-  CompositeProvider(std::move(provider)),
+  CompositeProvider<Provider, Map<Provider, Transform>>(std::move(provider)),
   transform(std::forward<Transform>(transform))
   {}
 
-private:
   bool AdvanceImpl() {
-    return provider.Advance();
+    return this->provider.Advance();
   }
 
   std::shared_ptr<value_type> GetImpl() {
     return std::make_shared<value_type>(
-      transform(std::move(*provider.Get())));
+      transform(std::move(*this->provider.Get())));
   }
 
+private:
   Transform transform;
 };
 
@@ -205,14 +209,13 @@ public:
   using value_type = typename Provider::value_type;
 
   Filter(Provider&& provider, Predicate&& predicate) :
-  CompositeProvider(std::move(provider)),
+  CompositeProvider<Provider, Filter<Provider, Predicate>>(std::move(provider)),
   predicate(std::forward<Predicate>(predicate))
   {}
 
-private:
   bool AdvanceImpl() {
-    while (provider.Advance()) {
-      current = provider.Get();
+    while (this->provider.Advance()) {
+      current = this->provider.Get();
       if (predicate(*current))
         return true;
     }
@@ -224,6 +227,7 @@ private:
     return current;
   }
 
+private:
   Predicate predicate;
   std::shared_ptr<value_type> current;
 };
@@ -235,10 +239,10 @@ public:
   using value_type = std::vector<typename Provider::value_type>;
 
   Group(Provider&& provider, size_t size) :
-  CompositeProvider(std::move(provider)), size(size)
+  CompositeProvider<Provider, Group<Provider>>(std::move(provider)), 
+  size(size)
   {}
 
-private:
   bool AdvanceImpl() {
     if (streamEnded) {
       current.reset();
@@ -246,8 +250,8 @@ private:
     }
     current = std::make_shared<value_type>();
     for (size_t i = 0; i < size; ++i) {
-      if (provider.Advance()) {
-        current->emplace_back(std::move(*provider.Get()));
+      if (this->provider.Advance()) {
+        current->emplace_back(std::move(*this->provider.Get()));
       } else {
         streamEnded = true;
         break;
@@ -260,6 +264,7 @@ private:
     return current;
   }
 
+private:
   bool streamEnded = false;
   size_t size;
   std::shared_ptr<value_type> current;
@@ -315,8 +320,7 @@ private:
     constexpr auto compValue = 
       composite::traits::is_finite<Provider>::optvalue;
     static_assert(coreValue.has_value() || compValue.has_value(),
-        "Provider type doesn\'t match with known types, 
-         consider implementing corresponding traits");
+        "Provider type doesn\'t match with known types");
     if constexpr(coreValue.has_value())
       return coreValue.value();
     if constexpr(compValue.has_value())
@@ -334,3 +338,5 @@ constexpr bool is_finite_v = is_finite<Provider>::value;
 
 } // namespace providers
 } // namespace stream
+
+#endif

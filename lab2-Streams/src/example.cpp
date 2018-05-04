@@ -28,10 +28,6 @@ int main(int, char**)
     Stream s_lvref(v);
     (s_lvref | print_to(std::cout)) << std::endl;
 
-    std::cout << "const lvalue container init:\n";
-    Stream s_clvref(v);
-    (s_clvref | print_to(std::cout)) << std::endl;
-
     std::cout << "rvalue container init:\n";
     Stream s_rref(std::vector<int>{1, 2, 3, 4});
     (s_rref | print_to(std::cout)) << std::endl;
@@ -44,7 +40,7 @@ int main(int, char**)
     Stream s_gen(Incr{});
     (s_gen | get(7) | print_to(std::cout)) << std::endl;
 
-    std::cout << "pack:\n";
+    /*std::cout << "pack:\n";
     Stream s_pack(1);
     (s_pack | print_to(std::cout)) << std::endl;
 
@@ -98,7 +94,7 @@ int main(int, char**)
 
     std::cout << "operator nth:\n";
     Stream s_nth(0,0,0,1,0);
-    std::cout << (s_nth | nth(3)) << std::endl;
+    std::cout << (s_nth | nth(3)) << std::endl;*/
   }
   catch (const std::exception& e) {
     std::cout << e.what() << std::endl;

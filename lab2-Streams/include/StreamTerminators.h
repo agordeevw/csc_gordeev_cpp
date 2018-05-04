@@ -3,6 +3,8 @@
 
 #include <iostream>
 
+#include "StreamProviders.h"
+
 namespace stream {
 namespace terminators {
 
@@ -10,7 +12,7 @@ template <class IdentityFn, class Accumulator>
 class Reduce
 {
 public:
-  (IdentityFn&& identityFn, Accumulator&& accum) :
+  Reduce(IdentityFn&& identityFn, Accumulator&& accum) :
   identityFn(std::forward<IdentityFn>(identityFn)),
   accum(std::forward<Accumulator>(accum))
   {}
@@ -19,7 +21,7 @@ public:
   auto operator()(Stream<Provider>&& stream) {
     auto& provider = stream.GetProvider();
     if (!provider.Advance())
-      throw EmptyStreamException();
+      throw providers::EmptyStreamException();
     auto result = identityFn(std::move(*provider.Get()));
     while (provider.Advance())
       result = accum(result, std::move(*provider.Get()));
@@ -42,7 +44,7 @@ public:
     auto& provider = stream.GetProvider();
 
     if (!provider.Advance())
-      throw EmptyStreamException();
+      throw providers::EmptyStreamException();
     os << std::move(*provider.Get());
     while (provider.Advance())
       os << delimiter << std::move(*provider.Get());
@@ -79,9 +81,12 @@ public:
     auto& provider = stream.GetProvider();
     for (size_t i = 0; i <= index; ++i)
       if (!provider.Advance())
-        throw EmptyStreamException();
+        throw providers::EmptyStreamException();
     return std::move(*provider.Get());
   }
+
+private:
+  size_t index;
 };
 
 } // namespace terminators
