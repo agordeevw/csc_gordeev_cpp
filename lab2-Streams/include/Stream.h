@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <utility>
+#include <iterator>
 #include <type_traits>
 #include <list>
 
@@ -67,95 +68,129 @@ namespace {
   constexpr bool is_iterator_v = is_iterator<T>::value;
 } // namespace
 
-namespace stream 
-{
+namespace stream {
+namespace util {
+
+template <class T>
+struct is_container {
+  constexpr bool value = !std::is_same_v
+    <
+    std::iterator_traits<typename T::iterator>::value_type,
+    void
+    >;
+  // check for begin(), end()?
+}
+
+template <class T>
+constexpr bool is_container_v = is_container<T>::value;
+
+template <class T, class ... Args>
+void unpack(std::list<T>& list, Args ... args) {
+  (list.emplace_back(args), ...);
+}
+
+template <class T, class ... Args>
+std::list<T> CreateListFrom(T arg, Args ... args) {
+  std::list<T> ret;
+  ret.emplace_back(arg);
+  unpack(ret, args...);
+  return ret;
+}
+
+} // namespace util
 
 template <class> class Operator;
 template <class> class Terminator;
 
-template <class T>
+template <class Provider>
 class Stream
 {
 public:
-  using value_type = T;
+  using value_type = typename Provider::value_type;
 
-  template <class Iter,
-    class = std::enable_if_t<is_iterator_v<Iter>>>
-  Stream(Iter begin, Iter end) :
-    source(std::make_unique<providers::Iterator<T, Iter>>(begin, end)) {}
+  template <class Iterator>
+  Stream(std::enable_if_t
+    <
+    !std::is_same_v<std::iterator_traits<Iterator>::value_type, void>,
+    Iterator
+    > begin, Iterator end) : 
+  provider(begin, end) {};
 
-  template <class Container,
-    class = std::enable_if_t<is_container_v<Container>>>
-  Stream(const Container& cont) :
-    Stream(cont.begin(), cont.end()) {}
+  template <class Generator>
+  Stream(std::enable_if_t
+    <
+    std::is_invocable_v<Generator>
+    && !std::is_same_v<std::invoke_result_t<Generator>, void>,
+    Generator&&
+    > generator) : 
+  provider(std::forward<Generator>(generator)) {}
 
-  template <class Container,
-    class = std::enable_if_t<is_container_v<Container>>>
-  Stream(Container& cont) :
-    Stream(cont.begin(), cont.end()) {}
+  template <class Container>
+  Stream(std::enable_if_t
+    <
+    is_container_v<Container>, 
+    const Container&
+    > container) :
+  Stream(container.begin(), container.end()) {}
 
-  template <class Container,
-    class = std::enable_if_t<is_container_v<Container>>>
-  Stream(Container&& cont) :
-    source(std::make_unique<providers::ContainerOwner<Container>>(std::move(cont))) {}
-  
+  template <class Container>
+  Stream(std::enable_if_t
+    <
+    is_container_v<Container>,
+    Container&&
+    > container) :
+  provider(std::move(container)) {}
+
+  template <class T>
   Stream(std::initializer_list<T> init) :
-    source(std::make_unique<providers::ContainerOwner<
-      std::initializer_list<T>>>(std::move(init))) {}
+  provider(std::move(init)) {}
 
-  Stream(std::unique_ptr<providers::StreamProvider<T>>&& source) : 
-    source(std::move(source)) {}
+  template <class T, class ... Args>
+  Stream(T arg, Args ... args) :
+  provider(CreateListFrom(arg, args...)) {}
 
-  template <class Generator, 
-    class = std::enable_if_t<std::is_member_function_pointer_v<decltype(&(Generator::operator()))>>, 
-    class = int>
-  Stream(Generator&& generator) :
-    source(std::make_unique<providers::Generate<Generator>>(
-      std::forward<Generator>(generator))) {}
+  Stream(Provider&& provider) : 
+  provider(std::forward<Provider>(provider)) {}
 
-  template <class ...Args>
-  Stream(T arg, Args... args) :
-    source(std::make_unique<providers::ContainerOwner<std::list<T>>>(make_list_from(arg, args...))) {}
+  Stream() = delete;
+  Stream(const Stream<Provider>&) = delete;
+  Stream& operator=(const Stream<Provider>&) = delete;
+  Stream& operator=(Stream<Provider>&&) = delete;
+  Stream(Stream<Provider>&& stream) : provider(std::move(stream.provider)) {}
 
   template <class F>
   auto operator|(Operator<F>&& op) {
-    return op.apply(std::move(*this));
+    return op.Apply(std::move(*this));
   }
 
   template <class F>
   auto operator|(Operator<F>& op) {
-    return op.apply(std::move(*this));
+    return op.Apply(std::move(*this));
   }
 
   template <class F>
-  auto operator|(Terminator<F>&& term) -> std::result_of_t<F(Stream<T>&&)> {
-    return term.apply(std::move(*this));
+  auto operator|(Terminator<F>&& term) -> std::result_of_t<F(Stream&&)> { 
+    return term.Apply(std::move(*this)); 
   }
 
   template <class F>
-  auto operator|(Terminator<F>& term) -> std::result_of_t<F(Stream<T>&&)> {
-    return term.apply(std::move(*this));
+  auto operator|(Terminator<F>& term) -> std::result_of_t<F(Stream&&)> {
+    return term.Apply(std::move(*this));
   }
 
-  StreamProviderPtr<T>& GetSource() { return source; }
+  auto& GetProvider() { return provider; }
 
 private:
-  StreamProviderPtr<T> source;
-
-  template<class> friend class Operator;
-  template<class> friend class Terminator;
+  Provider provider;
 };
 
-template <class Iter, class = std::enable_if_t<is_iterator_v<Iter>>> Stream(Iter, Iter) ->
-  Stream<typename Iter::value_type>;
-template <class Container, class = std::enable_if_t<is_container_v<Container>>> Stream(Container&) ->
-  Stream<typename Container::value_type>;
-template <class Container, class = std::enable_if_t<is_container_v<Container>>> Stream(const Container&) ->
-  Stream<typename Container::value_type>;
-template <class Container, class = std::enable_if_t<is_container_v<Container>>> Stream(Container&&) ->
-  Stream<typename Container::value_type>;
-template <class Generator, class = std::enable_if_t<std::is_invocable_v<Generator()>>, class = int> Stream(Generator&&) ->
-  Stream<std::result_of_t<Generator()>>;
+template <class Iterator>
+Stream(Iterator begin, Iterator end) -> 
+  Stream<providers::core::Iterator<Iterator>>;
+
+template <class Generator>
+Stream(Generator&& generator) ->
+  Stream<providers::core::Generator<Generator>>;
 
 } // namespace stream
 
