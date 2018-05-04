@@ -1,8 +1,10 @@
 #ifndef INCLUDE_STREAMOPERATIONS_H
 #define INCLUDE_STREAMOPERATIONS_H
 
-namespace stream
-{
+#include <optional>
+
+namespace stream {
+
 template <class F, class G>
 class Compose
 {
@@ -18,6 +20,74 @@ private:
   F f;
   G g;
 };
+
+namespace operators {
+  class Get;
+  class Skip;
+  template <class> class Map;
+  template <class> class Filter;
+  class Group;
+} // namespace operators
+
+namespace terminators {
+  template <class, class> Reduce;
+  class PrintTo;
+  class ToVector;
+  class Nth;
+
+  namespace traits
+  {
+    template <class Term>
+    struct supports_infinite_helper {
+      static constexpr std::optional<bool> optvalue = std::nullopt;
+    };
+
+    template <class Term, class Op>
+    struct supports_infinite_helper<Compose<Term, Op>> {
+      static constexpr std::optional<bool> optvalue = 
+        supports_infinite<Term>::value;
+    };
+
+    template <class I, class A>
+    struct supports_infinite_helper<Reduce<I, A>> {
+      static constexpr std::optional<bool> optvalue = false;
+    };
+
+    template <>
+    struct supports_infinite_helper<PrintTo> {
+      static constexpr std::optional<bool> optvalue = false;
+    };
+
+    template <>
+    struct supports_infinite_helper<ToVector> {
+      static constexpr std::optional<bool> optvalue = false;
+    };
+
+    template <>
+    struct supports_infinite_helper<NthTerminator> {
+      static constexpr std::optional<bool> optvalue = true;
+    };
+
+    template <class Term>
+    struct supports_infinite {
+    private:
+      static constexpr bool DetermineValue() {
+        constexpr auto optvalue = 
+          supports_infinite_helper<Term>::optvalue;
+        static_assert(optvalue.has_value(),
+          "Terminator type doesn\' match with known types,
+          consider implementing corresponding traits");
+        return optvalue.value();
+      }
+    public:
+      static constexpr bool value = DetermineValue();
+    };
+
+    template <class Term>
+    constexpr bool supports_infinite_v = supports_infinite<Term>::value;
+
+  } // namespace traits
+} // namespace terminators
 
 template <class F>
 class Operator
