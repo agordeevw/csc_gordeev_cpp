@@ -34,7 +34,7 @@ private:
 class PrintTo
 {
 public:
-  PrintTo(std::ostream& os, const char* delimiter = " ") : 
+  PrintTo(std::ostream& os, const char* delimiter) : 
   os(os), delimiter(delimiter) {}
 
   template <class Provider>
@@ -85,6 +85,44 @@ public:
 };
 
 } // namespace terminators
+
+template <class Accumulator>
+auto reduce(Accumulator&& accum) {
+  return Terminator(terminators::Reduce(
+    [](auto x) { return x; },
+    std::forward<Accumulator>(accum)
+  ));
+}
+
+template <class IdentityFn, class Accumulator>
+auto reduce(IdentityFn&& identityFn, Accumulator&& accum) {
+  return Terminator(terminators::Reduce(
+    std::forward<IdentityFn>(identityFn),
+    std::forward<Accumulator>(accum)
+  ));
+}
+
+auto sum() {
+  return Terminator(terminators::Reduce(
+    [](auto x) { return x; },
+    [](auto x, auto y) { return x + y; }
+  ));
+}
+
+auto print_to(std::ostream& os, const char* delimiter = " ") {
+  return Terminator(terminators::PrintTo(
+    os, delimiter
+  ));
+}
+
+auto to_vector() {
+  return Terminator(terminators::ToVector());
+}
+
+auto nth(size_t index) {
+  return Terminator(terminators::Nth(index));
+}
+
 } // namespace stream
 
 #endif
