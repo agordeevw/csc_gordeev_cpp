@@ -21,7 +21,7 @@ public:
   auto operator()(Stream<Provider>&& stream) {
     auto& provider = stream.GetProvider();
     if (!provider.Advance())
-      throw providers::EmptyStreamException();
+      throw EmptyStreamException();
     auto result = identityFn(std::move(*provider.GetValue()));
     while (provider.Advance())
       result = accum(result, std::move(*provider.GetValue()));
@@ -44,7 +44,7 @@ public:
     auto& provider = stream.GetProvider();
 
     if (!provider.Advance())
-      throw providers::EmptyStreamException();
+      throw EmptyStreamException();
     os << std::move(*provider.GetValue());
     while (provider.Advance())
       os << delimiter << std::move(*provider.GetValue());
@@ -81,7 +81,7 @@ public:
     auto& provider = stream.GetProvider();
     for (size_t i = 0; i <= index; ++i)
       if (!provider.Advance())
-        throw providers::EmptyStreamException();
+        throw EmptyStreamException();
     return std::move(*provider.GetValue());
   }
 
