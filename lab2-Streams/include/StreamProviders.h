@@ -114,6 +114,12 @@ private:
 
 namespace traits {
 
+/*
+  If is_finite for some provider are not implemented,
+  corresponding is_finite specialization won't have
+  any value.
+*/
+
 template <class Provider>
 struct is_finite {};
 
@@ -292,6 +298,13 @@ struct is_finite {};
 template <class Provider>
 struct is_finite<Get<Provider>> : std::true_type {};
 
+/*
+  Following group of traits relies on the fact that provider 
+  can be only either core or composite.
+  If is_finite is not specialized for Provider here or in core namespace, 
+  is_finite trait won't have any value.
+*/
+
 template <class Provider, class Transform>
 struct is_finite<Map<Provider, Transform>> :
 is_finite<Provider>, core::traits::is_finite<Provider> {};
@@ -317,6 +330,15 @@ struct is_provider<A<P, Ts...>> : std::bool_constant<
 } // namespace composite
 
 namespace traits {
+
+/*
+  is_finite trait relies on the fact that is_finite specialization
+  for Provider is implemented only in either namespace core or namespace composite,
+  or not implemented at all.
+  If Provider type is not of one of implemented providers for which
+  appropriate specialization is present in core/composite namespace,
+  is_finite won't have any value and this will lead to compilation error.
+*/
 
 template <class Provider>
 struct is_finite : 

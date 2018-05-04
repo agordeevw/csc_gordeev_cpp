@@ -38,7 +38,7 @@ int main(int, char**)
 
     std::cout << "generator:\n";
     Stream s_gen(Incr{});
-    (s_gen | get(7) | print_to(std::cout)) << std::endl;
+    (s_gen  | print_to(std::cout)) << std::endl;
 
     /*std::cout << "pack:\n";
     Stream s_pack(1);
