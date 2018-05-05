@@ -82,6 +82,11 @@ public:
   provider(this->container.begin(), this->container.end())
   {}
 
+  Container(Container&& other) :
+  container(std::move(other.container)),
+  provider(this->container.begin(), this->container.end())
+  {}
+
   bool Advance() {
     return provider.Advance();
   }
