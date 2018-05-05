@@ -9,6 +9,25 @@ namespace stream {
 
 template <class> class Stream;
 
+template <class F, class G>
+class Compose
+{
+public:
+  Compose(F&& f, G&& g):
+    f(std::forward<F>(f)),
+    g(std::forward<G>(g))
+  {}
+
+  template <class Provider>
+  auto operator()(Stream<Provider>&& stream) {
+    return f(g(std::move(stream)));
+  }
+
+private:
+  F f;
+  G g;
+};
+
 template <class F>
 class Terminator
 {
@@ -45,6 +64,20 @@ public:
   auto Apply(Stream<Provider>&& stream) {
     return op(std::move(stream));
   }
+
+  template <class G>
+  auto operator|(Operator<G>&& other) {
+    return Operator<Compose<G, F>>(
+      Compose(std::move(other.op), std::move(op))
+    );
+  }
+
+  template <class G>
+  auto operator|(Terminator<G>&& other) {
+    return Terminator<Compose<G, F>>(
+      Compose(std::move(other.term), std::move(op))
+    );
+}
 
   template<class> friend class Operator;
 

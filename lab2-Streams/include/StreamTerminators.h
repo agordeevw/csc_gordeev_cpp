@@ -6,6 +6,7 @@
 namespace stream {
 
 template <class> class Stream;
+template <class, class> class Compose;
 
 namespace terminators {
 
@@ -129,6 +130,10 @@ namespace traits
   template <>
   struct supports_infinite<Nth>:
     std::true_type {};
+
+  template <class Term, class Op>
+  struct supports_infinite<Compose<Term, Op>> :
+    supports_infinite<Term> {};
 
   template <class Term>
   constexpr bool supports_infinite_v = supports_infinite<Term>::value;

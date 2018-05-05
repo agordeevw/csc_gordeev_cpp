@@ -245,6 +245,28 @@ int main(int, char**)
             AverageReduce()
           )
       ) << std::endl;
+
+    std::cout << "Composite operators:\n";
+
+    auto transformAndFilter = 
+      map([](int x) { return x % 2 == 0 ? x : -x; })
+      | filter([](int x) { return x > 0; });
+
+    auto groupAndSum = 
+      group(3)
+      | map(
+          [](std::vector<int>&& vec) {
+            return std::accumulate(vec.begin(), vec.end(), 0);
+          }
+        )
+      | sum();
+
+    auto value = 
+      Stream({1, 2, 3, 4, 5, 6, 7, 8, 9})
+        | transformAndFilter
+        | groupAndSum;
+
+    std::cout << value << std::endl;
   }
   catch (const std::exception& e) {
     std::cout << e.what() << std::endl;
