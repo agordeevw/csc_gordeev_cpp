@@ -194,7 +194,7 @@ int main(int, char**)
 
     (fizzbuzzStream | get(30) | print_to(std::cout)) << std::endl;
 
-    const auto randomData =
+    auto randomData =
       Stream(Rand{})
       | get(10)
       | to_vector();

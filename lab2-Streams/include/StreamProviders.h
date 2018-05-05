@@ -84,7 +84,7 @@ public:
   {}
 
   Container(ContainerType&& container) :
-  container(std::forward<BaseContainerType>(container)),
+  container(std::forward<ContainerType>(container)),
   provider(this->container.begin(), this->container.end())
   {}
 
