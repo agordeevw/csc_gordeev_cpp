@@ -32,13 +32,13 @@ template <class T>
 constexpr bool is_container_v = is_container<T>::value;
 
 template <class T, class ... Args>
-void unpack(std::list<T>& list, Args&& ... args) {
-  (list.emplace_back(std::forward<Args>(args)), ...);
+void unpack(std::vector<T>& vec, Args&& ... args) {
+  (vec.emplace_back(std::forward<Args>(args)), ...);
 }
 
 template <class T, class ... Args>
-std::list<T> CreateListFrom(T&& arg, Args&& ... args) {
-  std::list<T> ret;
+std::vector<T> CreateListFrom(T&& arg, Args&& ... args) {
+  std::vector<T> ret;
   ret.emplace_back(std::forward<T>(arg));
   unpack(ret, std::forward<Args>(args)...);
   return ret;
@@ -115,13 +115,22 @@ public:
   Stream(Generator&& generator) : 
   provider(std::forward<Generator>(generator)) {}
 
+  template <class OtherProvider, class = 
+    std::enable_if_t
+    <
+      providers::traits::is_provider_v<OtherProvider>,
+      OtherProvider
+    >,
+    class = int,
+    class = int
+  >
+  Stream(OtherProvider&& provider) :
+  provider(std::move(provider)) {}
+
   template <class T, class ... Args>
   Stream(T&& arg, Args&& ... args) :
   Stream(util::CreateListFrom(
     std::forward<T>(arg), std::forward<Args>(args)...)) {}
-
-  Stream(Provider&& provider) :
-  provider(std::forward<Provider>(provider)) {}
 
   template <class F>
   auto operator|(Operator<F>&& op) {
@@ -194,11 +203,27 @@ Stream<providers::Container<Container>>;
 
 template <class T>
 Stream(std::initializer_list<T>) ->
-Stream<providers::Container<std::list<T>>>;
+Stream<providers::Container<std::vector<T>>>;
 
 template <class Generator, typename = std::enable_if_t<std::is_invocable_v<Generator>, Generator>, class = int>
-  Stream(Generator&& generator) ->
+Stream(Generator&& generator) ->
 Stream<providers::Generator<Generator>>;
+
+template <class OtherProvider, class = 
+  std::enable_if_t
+  <
+    providers::traits::is_provider_v<OtherProvider>,
+    OtherProvider
+  >,
+  class = int,
+  class = int
+>
+Stream(OtherProvider&& provider) ->
+Stream<OtherProvider>;
+
+template <class T, class ... Args>
+  Stream(T&& arg, Args&& ... args) ->
+Stream<providers::Container<std::vector<T>>>;
 
 } // namespace stream
 
