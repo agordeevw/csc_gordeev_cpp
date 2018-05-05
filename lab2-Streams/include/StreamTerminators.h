@@ -3,21 +3,32 @@
 
 #include <iostream>
 
-#include "StreamProviders.h"
-
 namespace stream {
 
+template <class> class Stream;
 template <class, class> class Compose;
 
 namespace terminators {
+
+/*
+  Terminator class must be Callable:
+  template <class Provider>
+  auto operator()(Stream<Provider>&&) -> ...
+
+  All terminator traits for new terminator must be implemented,
+    otherwise compilation will fail.
+
+  If stream is empty, 
+    EmptyStreamException must be thrown.
+*/
 
 template <class IdentityFn, class Accumulator>
 class Reduce
 {
 public:
   Reduce(IdentityFn&& identityFn, Accumulator&& accum) :
-  identityFn(std::forward<IdentityFn>(identityFn)),
-  accum(std::forward<Accumulator>(accum))
+    identityFn(std::forward<IdentityFn>(identityFn)),
+    accum(std::forward<Accumulator>(accum))
   {}
 
   template <class Provider>
@@ -40,7 +51,9 @@ class PrintTo
 {
 public:
   PrintTo(std::ostream& os, const char* delimiter) : 
-  os(os), delimiter(delimiter) {}
+    os(os),
+    delimiter(delimiter)
+  {}
 
   template <class Provider>
   std::ostream& operator()(Stream<Provider>&& stream) {
@@ -68,8 +81,11 @@ public:
   auto operator()(Stream<Provider>&& stream) {
     auto& provider = stream.GetProvider();
     std::vector<typename Provider::value_type> result;
-    while (provider.Advance())
+    if (!provider.Advance())
+      throw EmptyStreamException();
+    do {
       result.emplace_back(std::move(*provider.GetValue()));
+    } while (provider.Advance());
     return result;
   }
 };
@@ -77,7 +93,9 @@ public:
 class Nth
 {
 public:
-  Nth(size_t index) : index(index) {}
+  Nth(size_t index) :
+    index(index)
+  {}
 
   template <class Provider>
   auto operator()(Stream<Provider>&& stream) {

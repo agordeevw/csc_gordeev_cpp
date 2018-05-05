@@ -1,23 +1,36 @@
 #ifndef INCLUDE_STREAMOPERATORS_H
 #define INCLUDE_STREAMOPERATORS_H
 
-#include "StreamProviders.h"
-
 namespace stream {
+
+template <class> class Stream;
+
 namespace operators {
+
+/*
+  Operator class must be Callable:
+  template <class Provider>
+  auto operator()(Stream<Provider>&&) -> Stream<...>
+
+  If stream is empty, 
+    EmptyStreamException must be thrown.
+*/
 
 class Get
 {
 public:
-  Get(size_t amount) : amount(amount) {}
+  Get(size_t amount) :
+    amount(amount)
+  {}
 
   template <class Provider>
   auto operator()(Stream<Provider>&& stream) {
-    using provider_type = providers::Get<Provider>;
-
-    return Stream(provider_type(std::move(stream.GetProvider()),
-      amount
-    ));
+    return Stream(
+      providers::Get<Provider>(
+        std::move(stream.GetProvider()),
+        amount
+      )
+    );
   }
 
 private:
@@ -27,7 +40,9 @@ private:
 class Skip
 {
 public:
-  Skip(size_t amount) : amount(amount) {}
+  Skip(size_t amount) : 
+    amount(amount)
+  {}
 
   template <class Provider>
   auto operator()(Stream<Provider>&& stream) {
@@ -36,7 +51,7 @@ public:
       if (!provider.Advance())
         throw EmptyStreamException();
     }
-    return Stream(std::move(stream.GetProvider()));
+    return Stream(std::move(stream));
   }
 
 private:
@@ -48,16 +63,17 @@ class Map
 {
 public:
   Map(Transform&& transform) : 
-  transform(std::forward<Transform>(transform))
+    transform(std::forward<Transform>(transform))
   {}
 
   template <class Provider>
   auto operator()(Stream<Provider>&& stream) {
-    using provider_type = providers::Map<Provider, Transform>;
-
-    return Stream(provider_type(std::move(stream.GetProvider()), 
-      std::move(transform)
-    ));
+    return Stream(
+      providers::Map<Provider, Transform>(
+        std::move(stream.GetProvider()), 
+        std::move(transform)
+      )
+    );
   }
 
 private:
@@ -69,16 +85,17 @@ class Filter
 {
 public:
   Filter(Predicate&& predicate) :
-  predicate(std::forward<Predicate>(predicate))
+    predicate(std::forward<Predicate>(predicate))
   {}
 
   template <class Provider> 
   auto operator() (Stream<Provider>&& stream) {
-    using provider_type = providers::Filter<Provider, Predicate>;
-
-    return Stream(provider_type(std::move(stream.GetProvider()),
-      std::move(predicate)
-    ));
+    return Stream(
+      providers::Filter<Provider, Predicate>(
+        std::move(stream.GetProvider()),
+        std::move(predicate)
+      )
+    );
   }
 
 private:
@@ -88,15 +105,18 @@ private:
 class Group
 {
 public:
-  Group(size_t size) : size(size) {}
+  Group(size_t size) : 
+    size(size)
+  {}
 
   template <class Provider>
   auto operator() (Stream<Provider>&& stream) {
-    using provider_type = providers::Group<Provider>;
-
-    return Stream(provider_type(std::move(stream.GetProvider()),
-      size
-    ));
+    return Stream(
+      providers::Group<Provider>(
+        std::move(stream.GetProvider()),
+        size
+      )
+    );
   }
 
 private:

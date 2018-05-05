@@ -2,21 +2,55 @@
 #define INCLUDE_STREAMPROVIDERS_H
 
 #include <memory>
-#include <optional>
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
 
 namespace stream {
 
+/*
+  Empty streams are prohibited, 
+    do not hesitate to throw exceptions
+    in new operators and terminators.
+*/
+
 class EmptyStreamException : public std::logic_error
 {
 public:
   EmptyStreamException() : 
-  std::logic_error("Empty stream") {};
+    std::logic_error("Empty stream")
+  {}
 };
 
 namespace providers {
+
+/*
+  Provider class must have following interface:
+  class Provider
+  {
+  public:
+    using value_type = ...;
+    bool Advance();
+    std::shared_ptr<value_type> GetValue();
+  }
+  All provider traits for new provider must be defined, 
+    otherwise compilation will fail.
+
+  bool Advance()
+  Advances provider to the next element.
+  Returns true if new element is successfully provided.
+  If stream provider ended, returns false. In this case
+    following calls to GetValue() are undefined.
+
+  std::shared_ptr<value_type> GetValue()
+  Returns current element of stream.
+  Requires Advance() to be called at least once, otherwise
+    behavior is undefined (unitialized initial value).
+  Requires Advance() to be called after each call to GetValue(),
+    otherwise behavior is undefined (using value that was moved from).
+  If Advance() returned false, following calls of GetValue()
+    are undefined.
+*/
 
 template <class IteratorType>
 class Iterator final
@@ -25,7 +59,8 @@ public:
   using value_type = typename IteratorType::value_type;
 
   Iterator(IteratorType begin, IteratorType end) :
-  current(begin), end(end)
+    current(begin),
+    end(end)
   {}
 
   bool Advance() {
@@ -54,7 +89,7 @@ public:
   using value_type = std::invoke_result_t<GeneratorType>;
 
   Generator(GeneratorType&& generator) :
-  generator(std::forward<GeneratorType>(generator))
+    generator(std::forward<GeneratorType>(generator))
   {}
 
   bool Advance() {
@@ -75,23 +110,24 @@ template <class ContainerType>
 class Container final
 {
 public:
-  using BaseContainerType = std::remove_const_t<std::remove_reference_t<ContainerType>>;
+  using BaseContainerType = std::remove_const_t<
+    std::remove_reference_t<ContainerType>>;
   using value_type = typename BaseContainerType::value_type;
 
   Container(const BaseContainerType& container) :
-  container(container),
-  provider(this->container.begin(), this->container.end())
+    container(container),
+    provider(this->container.begin(), this->container.end())
   {}
 
   Container(ContainerType&& container) :
-  container(std::forward<ContainerType>(container)),
-  provider(this->container.begin(), this->container.end())
+    container(std::forward<ContainerType>(container)),
+    provider(this->container.begin(), this->container.end())
   {}
 
   Container(Container&& other) :
-  container(std::move(other.container)),
-  provider(this->container.begin(), this->container.end()),
-  advanceCount(other.advanceCount)
+    container(std::move(other.container)),
+    provider(this->container.begin(), this->container.end()),
+    advanceCount(other.advanceCount)
   {
     for (size_t i = 0; i < advanceCount; ++i)
       provider.Advance();
@@ -152,11 +188,12 @@ template <class Provider, class Transform>
 class Map final
 {
 public:
-  using value_type = std::invoke_result_t<Transform, typename Provider::value_type>;
+  using value_type = 
+    std::invoke_result_t<Transform, typename Provider::value_type>;
 
   Map(Provider&& provider, Transform&& transform) :
-  provider(std::move(provider)),
-  transform(std::forward<Transform>(transform))
+    provider(std::move(provider)),
+    transform(std::forward<Transform>(transform))
   {}
 
   bool Advance() {
@@ -180,8 +217,8 @@ public:
   using value_type = typename Provider::value_type;
 
   Filter(Provider&& provider, Predicate&& predicate) :
-  provider(std::move(provider)),
-  predicate(std::forward<Predicate>(predicate))
+    provider(std::move(provider)),
+    predicate(std::forward<Predicate>(predicate))
   {}
 
   bool Advance() {
@@ -211,8 +248,8 @@ public:
   using value_type = std::vector<typename Provider::value_type>;
 
   Group(Provider&& provider, size_t size) :
-  provider(std::move(provider)),
-  size(size)
+    provider(std::move(provider)),
+    size(size)
   {}
 
   bool Advance() {
@@ -249,25 +286,32 @@ template <class Provider>
 struct is_finite {};
 
 template <class IteratorType>
-struct is_finite<Iterator<IteratorType>> : std::true_type {};
+struct is_finite<Iterator<IteratorType>> : 
+  std::true_type {};
 
 template <class GeneratorType>
-struct is_finite<Generator<GeneratorType>> : std::false_type {};
+struct is_finite<Generator<GeneratorType>> : 
+  std::false_type {};
 
 template <class ContainerType>
-struct is_finite<Container<ContainerType>> : std::true_type {};
+struct is_finite<Container<ContainerType>> : 
+  std::true_type {};
 
 template <class Provider>
-struct is_finite<Get<Provider>> : std::true_type {};
+struct is_finite<Get<Provider>> : 
+  std::true_type {};
 
 template <class Provider, class Transform>
-struct is_finite<Map<Provider, Transform>> : is_finite<Provider> {};
+struct is_finite<Map<Provider, Transform>> : 
+  is_finite<Provider> {};
 
 template <class Provider, class Predicate>
-struct is_finite<Filter<Provider, Predicate>> : is_finite<Provider> {};
+struct is_finite<Filter<Provider, Predicate>> : 
+  is_finite<Provider> {};
 
 template <class Provider>
-struct is_finite<Group<Provider>> : is_finite<Provider> {};
+struct is_finite<Group<Provider>> : 
+  is_finite<Provider> {};
 
 template <class Provider>
 constexpr bool is_finite_v = is_finite<Provider>::value;
@@ -276,25 +320,32 @@ template <class T>
 struct is_provider : std::false_type {};
 
 template <class IteratorType>
-struct is_provider<Iterator<IteratorType>> : std::true_type {};
+struct is_provider<Iterator<IteratorType>> : 
+  std::true_type {};
 
 template <class GeneratorType>
-struct is_provider<Generator<GeneratorType>> : std::true_type {};
+struct is_provider<Generator<GeneratorType>> : 
+  std::true_type {};
 
 template <class ContainerType>
-struct is_provider<Container<ContainerType>> : std::true_type {};
+struct is_provider<Container<ContainerType>> : 
+  std::true_type {};
 
 template <class Provider>
-struct is_provider<Get<Provider>> : is_provider<Provider> {};
+struct is_provider<Get<Provider>> : 
+  is_provider<Provider> {};
 
 template <class Provider, class Transform>
-struct is_provider<Map<Provider, Transform>> : is_provider<Provider> {};
+struct is_provider<Map<Provider, Transform>> : 
+  is_provider<Provider> {};
 
 template <class Provider, class Predicate>
-struct is_provider<Filter<Provider, Predicate>> : is_provider<Provider> {};
+struct is_provider<Filter<Provider, Predicate>> : 
+  is_provider<Provider> {};
 
 template <class Provider>
-struct is_provider<Group<Provider>> : is_provider<Provider> {};
+struct is_provider<Group<Provider>> : 
+  is_provider<Provider> {};
 
 template <class Provider>
 constexpr bool is_provider_v = is_provider<Provider>::value;

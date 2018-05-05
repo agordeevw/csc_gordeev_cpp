@@ -1,13 +1,14 @@
 #ifndef INCLUDE_STREAM_H
 #define INCLUDE_STREAM_H
 
-#include <memory>
-#include <utility>
 #include <iterator>
 #include <type_traits>
-#include <list>
+#include <utility>
+#include <vector>
 
 #include "StreamProviders.h"
+#include "StreamOperations.h"
+#include "StreamInterface.h"
 
 namespace stream {
 namespace util {
@@ -37,7 +38,7 @@ void unpack(std::vector<T>& vec, Args&& ... args) {
 }
 
 template <class T, class ... Args>
-std::vector<T> CreateListFrom(T&& arg, Args&& ... args) {
+std::vector<T> CreateContainerFrom(T&& arg, Args&& ... args) {
   std::vector<T> ret;
   ret.emplace_back(std::forward<T>(arg));
   unpack(ret, std::forward<Args>(args)...);
@@ -120,7 +121,7 @@ public:
 
   template <class T, class ... Args>
   Stream(T&& arg, Args&& ... args) :
-  Stream(util::CreateListFrom(
+  Stream(util::CreateContainerFrom(
     std::forward<T>(arg), std::forward<Args>(args)...)) {}
 
   template <class F>
@@ -186,7 +187,13 @@ template <class T>
 Stream(std::initializer_list<T>) ->
 Stream<providers::Container<std::vector<T>>>;
 
-template <class Generator, typename = std::enable_if_t<std::is_invocable_v<Generator>, Generator>, class = int>
+template <class Generator, class = 
+  std::enable_if_t
+  <
+    std::is_invocable_v<Generator>,
+    Generator
+  >, 
+  class = void>
 Stream(Generator&& generator) ->
 Stream<providers::Generator<Generator>>;
 
@@ -196,20 +203,16 @@ template <class OtherProvider, class =
     providers::traits::is_provider_v<OtherProvider>,
     OtherProvider
   >,
-  class = int,
-  class = int
+  class = void,
+  class = void
 >
 Stream(OtherProvider&& provider) ->
 Stream<OtherProvider>;
 
 template <class T, class ... Args>
-  Stream(T&& arg, Args&& ... args) ->
+Stream(T&& arg, Args&& ... args) ->
 Stream<providers::Container<std::vector<T>>>;
 
 } // namespace stream
-
-#include "StreamOperators.h"
-#include "StreamTerminators.h"
-#include "StreamOperations.h"
 
 #endif
