@@ -3,6 +3,7 @@
 #include <type_traits>
 #include <iostream>
 #include <numeric>
+#include <string>
 
 #include "Stream.h"
 
@@ -173,6 +174,22 @@ int main(int, char**)
 
     std::cout << "20th partial sum of euler row:\n";
     std::cout << (eulerRowStream | get(20) | sum()) << std::endl;
+
+    std::cout << "fizzbuzz:\n";
+    auto fizzbuzzStream = 
+      Stream(Incr{1})
+      | map([] (int x) -> std::string {
+          if (x % 3 == 0 && x % 5 == 0)
+            return "Fizzbuzz";
+          if (x % 3 == 0)
+            return "Fizz";
+          if (x % 5 == 0)
+            return "Buzz";
+          return std::to_string(x);
+        }
+      );
+
+    (fizzbuzzStream | get(30) | print_to(std::cout)) << std::endl;
   }
   catch (const std::exception& e) {
     std::cout << e.what() << std::endl;
