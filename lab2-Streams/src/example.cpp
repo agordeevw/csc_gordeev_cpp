@@ -45,8 +45,8 @@ int main(int, char**)
         | print_to(std::cout)) << std::endl;
 
     std::cout << "const lvalue container init:\n";
-    const std::vector<int> v3{1, 2, 3, 4, 5};
-    Stream s_clvref(v3);
+    const auto& cv1 = v1;
+    Stream s_clvref(cv1);
     (s_clvref 
         | print_to(std::cout)) << std::endl;
 
