@@ -16,7 +16,9 @@ struct Incr {
 };
 
 struct Rand {
-  int operator()() { return rand(); }
+  Rand(int min, int max) : min(min), max(max) {}
+  int min, max;
+  int operator()() { return rand() % (max - min) + min; }
 };
 
 int fibo(int n) {
@@ -71,7 +73,7 @@ int main(int, char**)
         | print_to(std::cout)) << std::endl;
 
     std::cout << "operator get:\n";
-    Stream s_get(Rand{});
+    Stream s_get(Rand{0, 100});
     (s_get 
         | get(5) 
         | print_to(std::cout)) << std::endl;
@@ -195,7 +197,7 @@ int main(int, char**)
     (fizzbuzzStream | get(30) | print_to(std::cout)) << std::endl;
 
     auto randomData =
-      Stream(Rand{})
+      Stream(Rand{0, 10})
       | get(10)
       | to_vector();
 
@@ -211,6 +213,37 @@ int main(int, char**)
         | reduce([](int min, int x) {
             return (x < min) ? x : min;
           })
+      ) << std::endl;
+
+    std::cout << "Sum of these values:\n";
+
+    std::cout << (
+      Stream(randomData)
+        | sum()
+      ) << std::endl;
+
+    std::cout << "Average of these values:\n";
+
+    class AverageReduce {
+    public:
+      AverageReduce() : counter(1) {};
+      double operator()(double result, double value) {
+        double temp = result * counter;
+        ++counter;
+        temp += value;
+        return temp / counter;
+      }
+
+    private:
+      int counter;
+    };
+
+    std::cout << (
+      Stream(randomData)
+        | reduce(
+            [](int x) -> double { return x; }, 
+            AverageReduce()
+          )
       ) << std::endl;
   }
   catch (const std::exception& e) {
