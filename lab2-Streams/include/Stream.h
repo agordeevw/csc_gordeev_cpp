@@ -57,6 +57,17 @@ public:
   static_assert(providers::traits::is_provider_v<Provider>,
     "Stream provider type is not one of known provider types");
 
+  Stream() = delete;
+  Stream(const Stream&) = delete;
+  Stream& operator=(const Stream&) = delete;
+
+  Stream(Stream&& other) : provider(std::move(other.provider)) {}
+  Stream& operator=(Stream&& other) {
+    if (this != &other)
+      provider = std::move(other.provider);
+    return *this;
+  }
+
   template <class Iterator>
   Stream(
     std::enable_if_t

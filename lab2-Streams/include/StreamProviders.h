@@ -97,6 +97,13 @@ public:
       provider.Advance();
   }
 
+  Container& operator=(Container&& other) {
+    if (this != &other) {
+      std::swap(*this, other);
+    }
+    return *this;
+  }
+
   bool Advance() {
     ++advanceCount;
     return provider.Advance();

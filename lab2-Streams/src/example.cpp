@@ -7,6 +7,7 @@
 #include "Stream.h"
 
 struct Incr {
+  Incr(int start = 0) : counter(start) {}
   int counter = 0;
   int operator()() { return counter++; }
 };
@@ -14,6 +15,12 @@ struct Incr {
 struct Rand {
   int operator()() { return rand(); }
 };
+
+int fibo(int n) {
+  if (n < 0) return 0;
+  if (n == 0 || n == 1) return 1;
+  return fibo(n - 1) + fibo(n - 2);
+}
 
 int main(int, char**)
 {
@@ -121,6 +128,36 @@ int main(int, char**)
     std::cout << "operator nth (expect 1):\n";
     Stream s_nth(0,0,0,1,0);
     std::cout << (s_nth | nth(3)) << std::endl;
+
+    std::cout << "positive even numbers:\n";
+    Stream s_poseven(Incr{});
+    (s_poseven
+        | map([](int x) { return x % 2 == 0 ? x : -x; })
+        | filter([](int x) { return x > 0; })
+        | get(20)
+        | print_to(std::cout)
+        ) << std::endl;
+
+    std::cout << "20 primes starting from 50th:\n";
+    auto primesStream = 
+        Stream(Incr{2})
+        | filter([](int x) {
+            for (int y = 2; y <= x / 2; ++y)
+                if (x % y == 0)
+                    return false;
+            return true;
+          }
+        );
+
+    (primesStream | skip(50) | get(20) | print_to(std::cout)) << std::endl;
+
+    std::cout << "sum of first 10 fibo numbers:\n";
+    auto fiboStream = 
+        Stream(Incr{})
+        | map([] (int x) { return fibo(x); }
+        );
+
+    std::cout << (fiboStream | get(10) | sum()) << std::endl;
   }
   catch (const std::exception& e) {
     std::cout << e.what() << std::endl;
