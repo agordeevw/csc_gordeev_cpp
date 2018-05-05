@@ -48,9 +48,6 @@ std::vector<T> CreateContainerFrom(T&& arg, Args&& ... args) {
 
 } // namespace util
 
-template <class> class Operator;
-template <class> class Terminator;
-
 template <class Provider>
 class Stream
 {
