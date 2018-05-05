@@ -90,10 +90,15 @@ public:
 
   Container(Container&& other) :
   container(std::move(other.container)),
-  provider(this->container.begin(), this->container.end())
-  {}
+  provider(this->container.begin(), this->container.end()),
+  advanceCount(other.advanceCount)
+  {
+    for (size_t i = 0; i < advanceCount; ++i)
+      provider.Advance();
+  }
 
   bool Advance() {
+    ++advanceCount;
     return provider.Advance();
   }
 
@@ -104,6 +109,7 @@ public:
 private:
   BaseContainerType container;
   Iterator<typename BaseContainerType::iterator> provider;
+  size_t advanceCount = 0;
 };
 
 template <class Provider>
