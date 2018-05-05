@@ -90,7 +90,7 @@ int main(int, char**)
         | print_to(std::cout)) << std::endl;
 
     std::cout << "operator skip:\n";
-    Stream s_skip(0, 0, 0, 1, 1, 1);
+    Stream s_skip(0, 1, 2, 3, 4, 5);
     (s_skip 
         | skip(3) 
         | print_to(std::cout)) << std::endl;

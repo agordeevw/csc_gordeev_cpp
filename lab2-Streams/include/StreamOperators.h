@@ -31,10 +31,11 @@ public:
 
   template <class Provider>
   auto operator()(Stream<Provider>&& stream) {
-    auto& provider = stream.GetProvider();
+    auto ret = Stream(std::move(stream.GetProvider()));
+    auto& provider = ret.GetProvider();
     for (size_t i = 0; i < amount; ++i)
       provider.Advance();
-    return Stream(std::move(stream.GetProvider()));
+    return ret;
   }
 
 private:
