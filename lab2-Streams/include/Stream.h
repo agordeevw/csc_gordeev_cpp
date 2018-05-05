@@ -14,7 +14,8 @@ namespace stream {
 namespace util {
 
 template <class T, class = void>
-struct is_container : std::false_type {};
+struct is_container : 
+  std::false_type {};
 
 template <class T>
 struct is_container<T, std::conditional_t<
@@ -54,15 +55,21 @@ template <class Provider>
 class Stream
 {
 public:
+  static_assert(
+    providers::traits::is_provider_v<Provider>,
+    "Stream provider type is not one of known provider types"
+  );
+
   using value_type = typename Provider::value_type;
-  static_assert(providers::traits::is_provider_v<Provider>,
-    "Stream provider type is not one of known provider types");
 
   Stream() = delete;
   Stream(const Stream&) = delete;
   Stream& operator=(const Stream&) = delete;
 
-  Stream(Stream&& other) : provider(std::move(other.provider)) {}
+  Stream(Stream&& other) : 
+    provider(std::move(other.provider)) 
+  {}
+
   Stream& operator=(Stream&& other) {
     if (this != &other)
       provider = std::move(other.provider);
@@ -71,10 +78,8 @@ public:
 
   template <class Iterator>
   Stream(
-    std::enable_if_t
-    <
-      !std::is_same_v
-      <
+    std::enable_if_t<
+      !std::is_same_v<
         typename std::iterator_traits<Iterator>::value_type, 
         void
       >,
@@ -82,11 +87,10 @@ public:
     > begin, Iterator end) : 
   provider(begin, end) {}
 
-  template <class Container, typename = 
-    std::enable_if_t
-    <
+  template <class Container, class = 
+    std::enable_if_t<
       util::is_container_v<std::remove_reference_t<Container>>, 
-      int
+      void
     >
   >
   Stream(Container&& container) :
@@ -96,28 +100,28 @@ public:
   Stream(std::initializer_list<T> init) :
   provider(std::move(init)) {}
 
-  template <class Generator, typename = 
-    std::enable_if_t
-    <
+  template <class Generator, class = 
+    std::enable_if_t<
       std::is_invocable_v<Generator>, 
       Generator
     >, 
-    class = int
+    class = void
   >
   Stream(Generator&& generator) : 
-  provider(std::forward<Generator>(generator)) {}
+    provider(std::forward<Generator>(generator)) 
+  {}
 
   template <class OtherProvider, class = 
-    std::enable_if_t
-    <
+    std::enable_if_t<
       providers::traits::is_provider_v<OtherProvider>,
       OtherProvider
     >,
-    class = int,
-    class = int
+    class = void,
+    class = void
   >
   Stream(OtherProvider&& provider) :
-  provider(std::move(provider)) {}
+    provider(std::move(provider)) 
+  {}
 
   template <class T, class ... Args>
   Stream(T&& arg, Args&& ... args) :
@@ -135,12 +139,14 @@ public:
   }
 
   template <class F>
-  auto operator|(Terminator<F>&& term) -> std::invoke_result_t<F, Stream&&> {
+  auto operator|(Terminator<F>&& term)
+    -> std::invoke_result_t<F, Stream&&> {
     return term.Apply(std::move(*this)); 
   }
 
   template <class F>
-  auto operator|(Terminator<F>& term) -> std::invoke_result_t<F, Stream&&> {
+  auto operator|(Terminator<F>& term)
+    -> std::invoke_result_t<F, Stream&&> {
     return term.Apply(std::move(*this));
   }
 
@@ -152,10 +158,8 @@ private:
 
 template <class Iterator>
 Stream(
-  std::enable_if_t
-  <
-    !std::is_same_v
-    <
+  std::enable_if_t<
+    !std::is_same_v<
       typename std::iterator_traits<Iterator>::value_type,
       void
     >, 
@@ -164,18 +168,16 @@ Stream(
 Stream<providers::Iterator<Iterator>>;
 
 template <class Container, typename = 
-  std::enable_if_t
-  <
+  std::enable_if_t<
     util::is_container_v<Container>, 
-    int
+    void
   >
 >
 Stream(const Container& container) ->
 Stream<providers::Container<Container>>;
 
 template <class Container, typename = 
-  std::enable_if_t
-  <
+  std::enable_if_t<
     util::is_container_v<std::remove_reference_t<Container>>,
     Container
   >
@@ -188,8 +190,7 @@ Stream(std::initializer_list<T>) ->
 Stream<providers::Container<std::vector<T>>>;
 
 template <class Generator, class = 
-  std::enable_if_t
-  <
+  std::enable_if_t<
     std::is_invocable_v<Generator>,
     Generator
   >, 
@@ -198,8 +199,7 @@ Stream(Generator&& generator) ->
 Stream<providers::Generator<Generator>>;
 
 template <class OtherProvider, class = 
-  std::enable_if_t
-  <
+  std::enable_if_t<
     providers::traits::is_provider_v<OtherProvider>,
     OtherProvider
   >,

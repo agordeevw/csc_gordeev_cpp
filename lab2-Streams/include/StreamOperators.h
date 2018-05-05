@@ -12,8 +12,10 @@ namespace operators {
   template <class Provider>
   auto operator()(Stream<Provider>&&) -> Stream<...>
 
-  If stream is empty, 
-    EmptyStreamException must be thrown.
+  Operators are not allowed to do any operations with providers
+  (use provider.GetValue() and provider.Advance()).
+  This enforces the rule that operators do not perform any computations
+    before stream is terminated with some terminator.
 */
 
 class Get
@@ -46,12 +48,12 @@ public:
 
   template <class Provider>
   auto operator()(Stream<Provider>&& stream) {
-    auto& provider = stream.GetProvider();
-    for (size_t i = 0; i < amount; ++i) {
-      if (!provider.Advance())
-        throw EmptyStreamException();
-    }
-    return Stream(std::move(stream));
+    return Stream(
+      providers::Skip<Provider>(
+        std::move(stream.GetProvider()),
+        amount
+      )
+    );
   }
 
 private:

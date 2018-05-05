@@ -10,8 +10,7 @@ namespace stream {
 
 /*
   Empty streams are prohibited, 
-    do not hesitate to throw exceptions
-    in new operators and terminators.
+    do not hesitate to throw exceptions.
 */
 
 class EmptyStreamException : public std::logic_error
@@ -33,23 +32,24 @@ namespace providers {
     bool Advance();
     std::shared_ptr<value_type> GetValue();
   }
+
   All provider traits for new provider must be defined, 
     otherwise compilation will fail.
 
   bool Advance()
-  Advances provider to the next element.
-  Returns true if new element is successfully provided.
-  If stream provider ended, returns false. In this case
-    following calls to GetValue() are undefined.
+    Advances provider to the next element.
+    Returns true if new element is successfully provided.
+    If stream provider ended, returns false. In this case
+      following calls to GetValue() are undefined.
 
   std::shared_ptr<value_type> GetValue()
-  Returns current element of stream.
-  Requires Advance() to be called at least once, otherwise
-    behavior is undefined (unitialized initial value).
-  Requires Advance() to be called after each call to GetValue(),
-    otherwise behavior is undefined (using value that was moved from).
-  If Advance() returned false, following calls of GetValue()
-    are undefined.
+    Returns current element of stream.
+    Requires Advance() to be called at least once, otherwise
+      behavior is undefined (unitialized initial value).
+    Requires Advance() to be called after each call to GetValue(),
+      otherwise behavior is undefined (using value that was moved from).
+    If Advance() returned false, following calls of GetValue()
+      are undefined.
 */
 
 template <class IteratorType>
@@ -184,6 +184,36 @@ private:
   size_t amount;
 };
 
+template <class Provider>
+class Skip final
+{
+public:
+  using value_type = typename Provider::value_type;
+
+  Skip(Provider&& provider, size_t amount) :
+    provider(std::move(provider)),
+    amount(amount)
+  {}
+
+  bool Advance() {
+    while (current < amount) {
+      if (!provider.Advance())
+        throw EmptyStreamException();
+      ++current;
+    }
+    return provider.Advance();
+  }
+
+  std::shared_ptr<value_type> GetValue() {
+    return provider.GetValue();
+  }
+
+private:
+  Provider provider;
+  size_t current = 0;
+  size_t amount;
+};
+
 template <class Provider, class Transform>
 class Map final
 {
@@ -301,6 +331,10 @@ template <class Provider>
 struct is_finite<Get<Provider>> : 
   std::true_type {};
 
+template <class Provider>
+struct is_finite<Skip<Provider>> :
+  is_finite<Provider> {};
+
 template <class Provider, class Transform>
 struct is_finite<Map<Provider, Transform>> : 
   is_finite<Provider> {};
@@ -317,7 +351,8 @@ template <class Provider>
 constexpr bool is_finite_v = is_finite<Provider>::value;
 
 template <class T>
-struct is_provider : std::false_type {};
+struct is_provider : 
+  std::false_type {};
 
 template <class IteratorType>
 struct is_provider<Iterator<IteratorType>> : 
@@ -333,6 +368,10 @@ struct is_provider<Container<ContainerType>> :
 
 template <class Provider>
 struct is_provider<Get<Provider>> : 
+  is_provider<Provider> {};
+
+template <class Provider>
+struct is_provider<Skip<Provider>> :
   is_provider<Provider> {};
 
 template <class Provider, class Transform>

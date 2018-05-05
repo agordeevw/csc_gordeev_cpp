@@ -6,7 +6,6 @@
 namespace stream {
 
 template <class> class Stream;
-template <class, class> class Compose;
 
 namespace terminators {
 
@@ -114,10 +113,6 @@ namespace traits
 {
   template <class>
   struct supports_infinite {};
-
-  template <class Term, class Op>
-  struct supports_infinite<Compose<Term, Op>> :
-    supports_infinite<Term> {};
 
   template <class I, class A>
   struct supports_infinite<Reduce<I, A>> :
