@@ -37,8 +37,8 @@ public:
   {}
 
   template <class Provider>
-  auto Apply(Stream<Provider>&& stream) -> 
-  std::invoke_result_t<F, Stream<Provider>&&> {
+  auto Apply(Stream<Provider>&& stream)
+    -> std::invoke_result_t<F, Stream<Provider>&&> {
     static_assert(
       providers::traits::is_finite_v<Provider>
         || terminators::traits::supports_infinite_v<F>,

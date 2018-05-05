@@ -167,8 +167,8 @@ template <class Iterator, class =
     >
   >
 >
-Stream(Iterator begin, Iterator end) ->
-Stream<providers::Iterator<Iterator>>;
+Stream(Iterator begin, Iterator end)
+  -> Stream<providers::Iterator<Iterator>>;
 
 template <class Container, typename = 
   std::enable_if_t<
@@ -176,8 +176,8 @@ template <class Container, typename =
     void
   >
 >
-Stream(const Container& container) ->
-Stream<providers::Container<Container>>;
+Stream(const Container& container)
+  -> Stream<providers::Container<Container>>;
 
 template <class Container, typename = 
   std::enable_if_t<
@@ -185,12 +185,12 @@ template <class Container, typename =
     Container
   >
 >
-Stream(Container&&) ->
-Stream<providers::Container<Container>>;
+Stream(Container&&) 
+  -> Stream<providers::Container<Container>>;
 
 template <class T>
-Stream(std::initializer_list<T>) ->
-Stream<providers::Container<std::vector<T>>>;
+Stream(std::initializer_list<T>) 
+  -> Stream<providers::Container<std::vector<T>>>;
 
 template <class Generator, class = 
   std::enable_if_t<
@@ -198,8 +198,8 @@ template <class Generator, class =
     Generator
   >, 
   class = void>
-Stream(Generator&& generator) ->
-Stream<providers::Generator<Generator>>;
+Stream(Generator&& generator)
+  -> Stream<providers::Generator<Generator>>;
 
 template <class OtherProvider, class = 
   std::enable_if_t<
@@ -209,12 +209,12 @@ template <class OtherProvider, class =
   class = void,
   class = void
 >
-Stream(OtherProvider&& provider) ->
-Stream<OtherProvider>;
+Stream(OtherProvider&& provider) 
+  -> Stream<OtherProvider>;
 
 template <class T, class ... Args>
-Stream(T&& arg, Args&& ... args) ->
-Stream<providers::Container<std::vector<T>>>;
+Stream(T&& arg, Args&& ... args) 
+  -> Stream<providers::Container<std::vector<T>>>;
 
 } // namespace stream
 

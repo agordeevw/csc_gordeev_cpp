@@ -12,8 +12,8 @@ namespace terminators {
 
 /*
   Terminator class must be Callable:
-  template <class Provider>
-  auto operator()(Stream<Provider>&&) -> ...
+    template <class Provider>
+    auto operator()(Stream<Provider>&&) -> ...
 
   All terminator traits for new terminator must be implemented,
     otherwise compilation will fail.

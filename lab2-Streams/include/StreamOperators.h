@@ -9,16 +9,17 @@ namespace operators {
 
 /*
   Operator class must be Callable:
-  template <class Provider>
-  auto operator()(Stream<Provider>&&) -> Stream<...>
+    template <class Provider>
+    auto operator()(Stream<Provider>&&) -> Stream<...>
 
   Operators __ARE NOT ALLOWED AT ANY CIRCUMSTANCES__ 
-    to do any operations with providers
+    to perform any operations with providers
     (e.g. use provider.GetValue() and provider.Advance())
     to enforce the rule that operators do not perform any computations
     before stream is terminated.
 
-  Attentive reader might notice that all operator classes
+  Information:
+    Attentive reader might notice that all operator classes
     can be easily substituted with lambdas. But named operators
     have their benefits, for example, possibility of traits implementation.
     Look at terminators, for example.
@@ -79,7 +80,7 @@ public:
     return Stream(
       providers::Map<Provider, Transform>(
         std::move(stream.GetProvider()), 
-        std::move(transform)
+        std::forward<Transform>(transform)
       )
     );
   }
@@ -101,7 +102,7 @@ public:
     return Stream(
       providers::Filter<Provider, Predicate>(
         std::move(stream.GetProvider()),
-        std::move(predicate)
+        std::forward<Predicate>(predicate)
       )
     );
   }
