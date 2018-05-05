@@ -75,6 +75,6 @@ auto group(size_t size) {
   return Operator(operators::Group(size));
 }
 
-} // namespace stream0
+} // namespace stream
 
 #endif

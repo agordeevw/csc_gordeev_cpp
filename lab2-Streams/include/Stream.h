@@ -76,16 +76,17 @@ public:
     return *this;
   }
 
-  template <class Iterator>
-  Stream(
+  template <class Iterator, class = 
     std::enable_if_t<
       !std::is_same_v<
         typename std::iterator_traits<Iterator>::value_type, 
         void
-      >,
-      Iterator
-    > begin, Iterator end) : 
-  provider(begin, end) {}
+      >
+    >
+  >
+  Stream(Iterator begin, Iterator end) : 
+    provider(begin, end)
+  {}
 
   template <class Container, class = 
     std::enable_if_t<
@@ -94,11 +95,13 @@ public:
     >
   >
   Stream(Container&& container) :
-  provider(std::forward<Container>(container)) {}
+    provider(std::forward<Container>(container)) 
+  {}
 
   template <class T>
   Stream(std::initializer_list<T> init) :
-  provider(std::move(init)) {}
+    provider(std::move(init))
+  {}
 
   template <class Generator, class = 
     std::enable_if_t<
@@ -156,15 +159,15 @@ private:
   Provider provider;
 };
 
-template <class Iterator>
-Stream(
+template <class Iterator, class = 
   std::enable_if_t<
     !std::is_same_v<
-      typename std::iterator_traits<Iterator>::value_type,
+      typename std::iterator_traits<Iterator>::value_type, 
       void
-    >, 
-    Iterator
-  > begin, Iterator end) ->
+    >
+  >
+>
+Stream(Iterator begin, Iterator end) ->
 Stream<providers::Iterator<Iterator>>;
 
 template <class Container, typename = 

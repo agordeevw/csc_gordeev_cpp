@@ -12,10 +12,16 @@ namespace operators {
   template <class Provider>
   auto operator()(Stream<Provider>&&) -> Stream<...>
 
-  Operators are not allowed to do any operations with providers
-  (use provider.GetValue() and provider.Advance()).
-  This enforces the rule that operators do not perform any computations
-    before stream is terminated with some terminator.
+  Operators __ARE NOT ALLOWED AT ANY CIRCUMSTANCES__ 
+    to do any operations with providers
+    (e.g. use provider.GetValue() and provider.Advance())
+    to enforce the rule that operators do not perform any computations
+    before stream is terminated.
+
+  Attentive reader might notice that all operator classes
+    can be easily substituted with lambdas. But named operators
+    have their benefits, for example, possibility of traits implementation.
+    Look at terminators, for example.
 */
 
 class Get
