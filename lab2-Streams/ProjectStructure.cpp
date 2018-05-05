@@ -12,27 +12,57 @@ namespace stream
   */
   namespace providers
   {
+
+    /*
+      Provides values from range defined by begin-end iterator pair.
+      Range isn't modified.
+    */
     template <class IteratorType>
     class Iterator;
 
+    /*
+      Provides values from Callable generator.
+    */
     template <class GeneratorType>
     class Generator;
 
+    /*
+      Provides values from container.
+      If initialized from lvalue container, doesn't modify it.
+      If initialized from rvalue container, moves it to itself.
+    */
     template <class ContainerType>
     class Container;
 
+    /*
+      Acquires finite number of values from Provider.
+    */
     template <class Provider>
     class Get;
 
+    /*
+      Skips first several values of Provider.
+      Throws EmptyStreamException if stream length is smaller
+        than requested number of values.
+    */
     template <class Provider>
     class Skip;
 
+    /*
+      Transforms each value of Provider.
+    */
     template <class Provider, class Transform>
     class Map;
 
+    /*
+      Filters values from Provider using Predicate
+    */
     template <class Provider, class Predicate>
     class Filter;
 
+    /*
+      Groups Provider values in std::vector of fixed length.
+    */
     template <class Provider>
     class Group;
 
