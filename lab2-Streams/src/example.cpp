@@ -151,13 +151,28 @@ int main(int, char**)
 
     (primesStream | skip(50) | get(20) | print_to(std::cout)) << std::endl;
 
-    std::cout << "sum of first 10 fibo numbers:\n";
+    std::cout << "10th fibo number:\n";
     auto fiboStream = 
         Stream(Incr{})
         | map([] (int x) { return fibo(x); }
         );
 
-    std::cout << (fiboStream | get(10) | sum()) << std::endl;
+    std::cout << (fiboStream | nth(10)) << std::endl;
+
+    auto eulerRowStream = 
+      Stream(Incr{})
+      | map([] (int x) {
+          if (x == 0) return 1.0;
+
+          double ret = 1.0;
+          for (int i = 1; i <= x; ++i)
+            ret *= 1.0 / i;
+          return ret;
+        }
+      );
+
+    std::cout << "20th partial sum of euler row:\n";
+    std::cout << (eulerRowStream | get(20) | sum()) << std::endl;
   }
   catch (const std::exception& e) {
     std::cout << e.what() << std::endl;
