@@ -73,32 +73,12 @@ public:
   template <class Container, typename = 
     std::enable_if_t
     <
-      util::is_container_v<Container>, 
-      Container
-    >
-  >
-  Stream(Container& container) :
-  Stream(container.begin(), container.end()) {}
-
-  template <class Container, typename = 
-    std::enable_if_t
-    <
-      util::is_container_v<Container>, 
-      Container
-    >
-  >
-  Stream(const Container& container) :
-  Stream(container.begin(), container.end()) {}
-
-  template <class Container, typename = 
-    std::enable_if_t
-    <
       util::is_container_v<std::remove_reference_t<Container>>, 
       int
     >
   >
   Stream(Container&& container) :
-  provider(std::move(container)) {}
+  provider(std::forward<Container>(container)) {}
 
   template <class T>
   Stream(std::initializer_list<T> init) :
@@ -175,21 +155,11 @@ template <class Container, typename =
   std::enable_if_t
   <
     util::is_container_v<Container>, 
-    Container
+    int
   >
 >
-Stream(Container&) ->
-Stream<providers::Iterator<typename Container::iterator>>;
-
-template <class Container, typename = 
-  std::enable_if_t
-  <
-    util::is_container_v<Container>,
-    Container
-  >
->
-Stream(const Container&) ->
-Stream<providers::Iterator<typename Container::iterator>>;
+Stream(const Container& container) ->
+Stream<providers::Container<Container>>;
 
 template <class Container, typename = 
   std::enable_if_t

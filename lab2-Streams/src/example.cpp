@@ -21,14 +21,21 @@ int main(int, char**)
 
   try {
     std::cout << "iterator init:\n";
-    std::vector<int> v{1, 2, 3, 4, 5};
-    Stream s_range(v.begin(), v.end());
+    std::vector<int> v1{1, 2, 3, 4, 5};
+    Stream s_range(v1.begin(), v1.end());
     (s_range 
         | print_to(std::cout)) << std::endl;
 
     std::cout << "lvalue container init:\n";
-    Stream s_lvref(v);
+    std::vector<int> v2{1, 2, 3, 4, 5};
+    Stream s_lvref(v2);
     (s_lvref 
+        | print_to(std::cout)) << std::endl;
+
+    std::cout << "const lvalue container init:\n";
+    const std::vector<int> v3{1, 2, 3, 4, 5};
+    Stream s_clvref(v3);
+    (s_clvref 
         | print_to(std::cout)) << std::endl;
 
     std::cout << "rvalue container init:\n";

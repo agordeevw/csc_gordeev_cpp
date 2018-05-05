@@ -75,10 +75,16 @@ template <class ContainerType>
 class Container final
 {
 public:
-  using value_type = typename ContainerType::value_type;
+  using BaseContainerType = std::remove_reference_t<ContainerType>;
+  using value_type = typename BaseContainerType::value_type;
+
+  Container(const BaseContainerType& container) :
+  container(container),
+  provider(this->container.begin(), this->container.end())
+  {}
 
   Container(ContainerType&& container) :
-  container(std::move(container)),
+  container(std::forward<BaseContainerType>(container)),
   provider(this->container.begin(), this->container.end())
   {}
 
@@ -96,8 +102,8 @@ public:
   }
 
 private:
-  ContainerType container;
-  Iterator<typename ContainerType::iterator> provider;
+  BaseContainerType container;
+  Iterator<typename BaseContainerType::iterator> provider;
 };
 
 template <class Provider>
