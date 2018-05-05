@@ -73,7 +73,7 @@ public:
   }
 
   std::shared_ptr<value_type> GetValue() {
-    return std::make_shared<value_type>(std::move(*current));
+    return std::make_shared<value_type>(*current);
   }
 
 private:

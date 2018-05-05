@@ -40,8 +40,7 @@ int main(int, char**)
         | print_to(std::cout)) << std::endl;
 
     std::cout << "lvalue container init:\n";
-    std::vector<int> v2{1, 2, 3, 4, 5};
-    Stream s_lvref(v2);
+    Stream s_lvref(v1);
     (s_lvref 
         | print_to(std::cout)) << std::endl;
 
