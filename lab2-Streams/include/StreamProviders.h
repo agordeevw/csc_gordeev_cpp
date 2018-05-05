@@ -150,7 +150,7 @@ public:
   }
 
 private:
-  BaseContainerType container;
+  ContainerType container;
   Iterator<typename BaseContainerType::iterator> provider;
   size_t advanceCount = 0;
 };
