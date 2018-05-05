@@ -1,8 +1,10 @@
+#include <chrono>
 #include <iostream>
 #include <vector>
 #include <type_traits>
 #include <iostream>
 #include <numeric>
+#include <random>
 #include <string>
 
 #include "Stream.h"
@@ -26,6 +28,7 @@ int fibo(int n) {
 int main(int, char**)
 {
   using namespace stream;
+  srand(std::time(0));
 
   try {
     std::cout << "iterator init:\n";
@@ -190,6 +193,25 @@ int main(int, char**)
       );
 
     (fizzbuzzStream | get(30) | print_to(std::cout)) << std::endl;
+
+    const auto randomData =
+      Stream(Rand{})
+      | get(10)
+      | to_vector();
+
+    std::cout << "Random values:\n";
+
+    (Stream(randomData)
+      | print_to(std::cout)) << std::endl;
+
+    std::cout << "Minimal of these values:\n";
+
+    std::cout << (
+      Stream(randomData)
+        | reduce([](int min, int x) {
+            return (x < min) ? x : min;
+          })
+      ) << std::endl;
   }
   catch (const std::exception& e) {
     std::cout << e.what() << std::endl;
