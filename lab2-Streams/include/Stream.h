@@ -208,8 +208,8 @@ Stream<providers::Container<std::vector<T>>>;
 
 } // namespace stream
 
-#include "StreamOperations.h"
 #include "StreamOperators.h"
 #include "StreamTerminators.h"
+#include "StreamOperations.h"
 
 #endif

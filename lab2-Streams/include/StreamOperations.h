@@ -21,73 +21,6 @@ private:
   G g;
 };
 
-namespace operators {
-  class Get;
-  class Skip;
-  template <class> class Map;
-  template <class> class Filter;
-  class Group;
-} // namespace operators
-
-namespace terminators {
-  template <class, class> class Reduce;
-  class PrintTo;
-  class ToVector;
-  class Nth;
-
-  namespace traits
-  {
-    template <class Term>
-    struct supports_infinite_helper {
-      static constexpr std::optional<bool> optvalue = std::nullopt;
-    };
-
-    template <class Term, class Op>
-    struct supports_infinite_helper<Compose<Term, Op>> {
-      static constexpr std::optional<bool> optvalue = 
-        supports_infinite_helper<Term>::optvalue;
-    };
-
-    template <class I, class A>
-    struct supports_infinite_helper<Reduce<I, A>> {
-      static constexpr std::optional<bool> optvalue = false;
-    };
-
-    template <>
-    struct supports_infinite_helper<PrintTo> {
-      static constexpr std::optional<bool> optvalue = false;
-    };
-
-    template <>
-    struct supports_infinite_helper<ToVector> {
-      static constexpr std::optional<bool> optvalue = false;
-    };
-
-    template <>
-    struct supports_infinite_helper<Nth> {
-      static constexpr std::optional<bool> optvalue = true;
-    };
-
-    template <class Term>
-    struct supports_infinite {
-    private:
-      static constexpr bool DetermineValue() {
-        constexpr auto optvalue = 
-          supports_infinite_helper<Term>::optvalue;
-        static_assert(optvalue.has_value(),
-          "Terminator type doesn\' match with known types");
-        return optvalue.value();
-      }
-    public:
-      static constexpr bool value = DetermineValue();
-    };
-
-    template <class Term>
-    constexpr bool supports_infinite_v = supports_infinite<Term>::value;
-
-  } // namespace traits
-} // namespace terminators
-
 template <class F>
 class Operator
 {
@@ -136,6 +69,66 @@ public:
 private:
   F term;
 };
+
+auto get(size_t n) {
+  return Operator(operators::Get(n));
+}
+
+template <class Transform>
+auto map(Transform&& transform) {
+  return Operator(operators::Map(std::forward<Transform>(transform)));
+}
+
+template <class Predicate>
+auto filter(Predicate&& predicate) {
+  return Operator(operators::Filter(std::forward<Predicate>(predicate)));
+}
+
+auto skip(size_t amount) {
+  return Operator(operators::Skip(amount));
+}
+
+auto group(size_t size) {
+  return Operator(operators::Group(size));
+}
+
+
+template <class Accumulator>
+auto reduce(Accumulator&& accum) {
+  return Terminator(terminators::Reduce(
+    [](auto x) { return x; },
+    std::forward<Accumulator>(accum)
+  ));
+}
+
+template <class IdentityFn, class Accumulator>
+auto reduce(IdentityFn&& identityFn, Accumulator&& accum) {
+  return Terminator(terminators::Reduce(
+    std::forward<IdentityFn>(identityFn),
+    std::forward<Accumulator>(accum)
+  ));
+}
+
+auto sum() {
+  return Terminator(terminators::Reduce(
+    [](auto x) { return x; },
+    [](auto x, auto y) { return x + y; }
+  ));
+}
+
+auto print_to(std::ostream& os, const char* delimiter = " ") {
+  return Terminator(terminators::PrintTo(
+    os, delimiter
+  ));
+}
+
+auto to_vector() {
+  return Terminator(terminators::ToVector());
+}
+
+auto nth(size_t index) {
+  return Terminator(terminators::Nth(index));
+}
 
 } // namespace stream
 

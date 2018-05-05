@@ -104,29 +104,6 @@ private:
 };
 
 } // namespace operators
-
-auto get(size_t n) {
-  return Operator(operators::Get(n));
-}
-
-template <class Transform>
-auto map(Transform&& transform) {
-  return Operator(operators::Map(std::forward<Transform>(transform)));
-}
-
-template <class Predicate>
-auto filter(Predicate&& predicate) {
-  return Operator(operators::Filter(std::forward<Predicate>(predicate)));
-}
-
-auto skip(size_t amount) {
-  return Operator(operators::Skip(amount));
-}
-
-auto group(size_t size) {
-  return Operator(operators::Group(size));
-}
-
 } // namespace stream
 
 #endif

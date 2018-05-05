@@ -6,6 +6,9 @@
 #include "StreamProviders.h"
 
 namespace stream {
+
+template <class, class> class Compose;
+
 namespace terminators {
 
 template <class IdentityFn, class Accumulator>
@@ -89,45 +92,36 @@ private:
   size_t index;
 };
 
+namespace traits
+{
+  template <class>
+  struct supports_infinite {};
+
+  template <class Term, class Op>
+  struct supports_infinite<Compose<Term, Op>> :
+    supports_infinite<Term> {};
+
+  template <class I, class A>
+  struct supports_infinite<Reduce<I, A>> :
+    std::false_type {};
+
+  template <>
+  struct supports_infinite<PrintTo> :
+    std::false_type {};
+
+  template <>
+  struct supports_infinite<ToVector>:
+    std::false_type {};
+
+  template <>
+  struct supports_infinite<Nth>:
+    std::true_type {};
+
+  template <class Term>
+  constexpr bool supports_infinite_v = supports_infinite<Term>::value;
+
+} // namespace traits
 } // namespace terminators
-
-template <class Accumulator>
-auto reduce(Accumulator&& accum) {
-  return Terminator(terminators::Reduce(
-    [](auto x) { return x; },
-    std::forward<Accumulator>(accum)
-  ));
-}
-
-template <class IdentityFn, class Accumulator>
-auto reduce(IdentityFn&& identityFn, Accumulator&& accum) {
-  return Terminator(terminators::Reduce(
-    std::forward<IdentityFn>(identityFn),
-    std::forward<Accumulator>(accum)
-  ));
-}
-
-auto sum() {
-  return Terminator(terminators::Reduce(
-    [](auto x) { return x; },
-    [](auto x, auto y) { return x + y; }
-  ));
-}
-
-auto print_to(std::ostream& os, const char* delimiter = " ") {
-  return Terminator(terminators::PrintTo(
-    os, delimiter
-  ));
-}
-
-auto to_vector() {
-  return Terminator(terminators::ToVector());
-}
-
-auto nth(size_t index) {
-  return Terminator(terminators::Nth(index));
-}
-
 } // namespace stream
 
 #endif
