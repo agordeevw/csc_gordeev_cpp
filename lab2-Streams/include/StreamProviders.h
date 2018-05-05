@@ -75,7 +75,7 @@ template <class ContainerType>
 class Container final
 {
 public:
-  using BaseContainerType = std::remove_reference_t<ContainerType>;
+  using BaseContainerType = std::remove_const_t<std::remove_reference_t<ContainerType>>;
   using value_type = typename BaseContainerType::value_type;
 
   Container(const BaseContainerType& container) :
