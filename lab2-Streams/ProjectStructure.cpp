@@ -6,7 +6,7 @@ namespace stream
     Data providers for streams.
     Provide common interface:
       bool Advance(),
-      std::shared_ptr<value_type> GetValue().
+      auto& GetValue().
     Advance() tries to advance the provider to the next element.
     GetValue() returns current element.
   */
@@ -86,6 +86,15 @@ namespace stream
       */
       template <class T>
       struct is_provider;
+
+      /*
+        Checks if each value of data provider can be accessible at any time
+          during stream execution.
+        Generator-based providers store only last generated element,
+          while container-based providers store all elements.
+      */
+      template <class Provider>
+      struct all_values_available;
 
     } // namespace traits
   } // namespace providers

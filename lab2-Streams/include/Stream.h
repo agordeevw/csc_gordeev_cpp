@@ -57,8 +57,6 @@ public:
     "Stream provider type is not one of known provider types"
   );
 
-  using value_type = typename Provider::value_type;
-
   Stream() = delete;
   Stream(const Stream&) = delete;
   Stream& operator=(const Stream&) = delete;
@@ -85,6 +83,26 @@ public:
     provider(begin, end)
   {}
 
+  template <class Container, typename = 
+    std::enable_if_t<
+      util::is_container_v<Container>, 
+      void
+    >
+  >
+  Stream(const Container& container) :
+    provider(container.begin(), container.end())
+  {}
+
+  template <class Container, typename = 
+    std::enable_if_t<
+      util::is_container_v<Container>, 
+      void
+    >
+  >
+  Stream(Container& container) :
+    provider(container.begin(), container.end())
+  {}
+
   template <class Container, class = 
     std::enable_if_t<
       util::is_container_v<std::remove_reference_t<Container>>, 
@@ -92,12 +110,12 @@ public:
     >
   >
   Stream(Container&& container) :
-    provider(std::forward<Container>(container)) 
+    provider(std::move(container)) 
   {}
 
   template <class T>
   Stream(std::initializer_list<T> init) :
-    provider(std::move(init))
+    provider(init)
   {}
 
   template <class Generator, class = 
@@ -174,7 +192,16 @@ template <class Container, typename =
   >
 >
 Stream(const Container& container)
-  -> Stream<providers::Container<Container>>;
+  -> Stream<providers::Iterator<typename Container::const_iterator>>;
+
+template <class Container, typename = 
+  std::enable_if_t<
+    util::is_container_v<Container>, 
+    void
+  >
+>
+Stream(Container& container)
+  -> Stream<providers::Iterator<typename Container::const_iterator>>;
 
 template <class Container, typename = 
   std::enable_if_t<

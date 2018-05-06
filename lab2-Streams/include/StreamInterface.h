@@ -14,7 +14,7 @@ template <class Accumulator>
 auto reduce(Accumulator&& accum) {
   return Terminator(
     terminators::Reduce(
-      [](auto x) { return x; },
+      [](auto&& x) -> auto&& { return x; },
       std::forward<Accumulator>(accum)
     )
   );
@@ -33,8 +33,8 @@ auto reduce(IdentityFn&& identityFn, Accumulator&& accum) {
 auto sum() {
   return Terminator(
     terminators::Reduce(
-      [](auto x) { return x; },
-      [](auto x, auto y) { return x + y; }
+      [](auto&& x) -> auto&& { return x; },
+      [](auto&& x, auto&& y) -> auto&& { return x + y; }
     )
   );
 }

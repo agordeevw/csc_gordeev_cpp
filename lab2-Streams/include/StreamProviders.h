@@ -1,7 +1,7 @@
 #ifndef INCLUDE_STREAMPROVIDERS_H
 #define INCLUDE_STREAMPROVIDERS_H
 
-#include <memory>
+#include <optional>
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
@@ -28,9 +28,8 @@ namespace providers {
   class Provider
   {
   public:
-    using value_type = ...;
     bool Advance();
-    std::shared_ptr<value_type> GetValue();
+    auto& GetValue();
   }
 
   All provider traits for new provider must be defined, 
@@ -42,7 +41,7 @@ namespace providers {
     If stream provider ended, returns false. In this case
       following calls to GetValue() are undefined.
 
-  std::shared_ptr<value_type> GetValue()
+  auto& GetValue()
     Returns current element of stream.
     Requires Advance() to be called at least once, otherwise
       behavior is undefined (unitialized initial value).
@@ -56,8 +55,6 @@ template <class IteratorType>
 class Iterator final
 {
 public:
-  using value_type = typename IteratorType::value_type;
-
   Iterator(IteratorType begin, IteratorType end) :
     current(begin),
     end(end)
@@ -72,8 +69,8 @@ public:
     return current != end;
   }
 
-  std::shared_ptr<value_type> GetValue() {
-    return std::make_shared<value_type>(*current);
+  auto& GetValue() {
+    return *current;
   }
 
 private:
@@ -85,25 +82,26 @@ private:
 template <class GeneratorType>
 class Generator final
 {
-public:
-  using value_type = std::invoke_result_t<GeneratorType>;
+  using value_type = 
+    std::invoke_result_t<GeneratorType>;
 
+public:
   Generator(GeneratorType&& generator) :
     generator(std::forward<GeneratorType>(generator))
   {}
 
   bool Advance() {
-    current = std::make_shared<value_type>(generator());
+    current = generator();
     return true;
   }
 
-  std::shared_ptr<value_type> GetValue() {
-    return current;
+  auto& GetValue() {
+    return current.value();
   }
 
 private:
   GeneratorType generator;
-  std::shared_ptr<value_type> current;
+  std::optional<value_type> current;
 };
 
 template <class ContainerType>
@@ -112,15 +110,9 @@ class Container final
 public:
   using BaseContainerType = std::remove_const_t<
     std::remove_reference_t<ContainerType>>;
-  using value_type = typename BaseContainerType::value_type;
-
-  Container(const BaseContainerType& container) :
-    container(container),
-    provider(this->container.begin(), this->container.end())
-  {}
 
   Container(ContainerType&& container) :
-    container(std::forward<ContainerType>(container)),
+    container(std::move(container)),
     provider(this->container.begin(), this->container.end())
   {}
 
@@ -145,7 +137,7 @@ public:
     return provider.Advance();
   }
 
-  std::shared_ptr<value_type> GetValue() {
+  auto& GetValue() {
     return provider.GetValue();
   }
 
@@ -159,8 +151,6 @@ template <class Provider>
 class Get final
 {
 public:
-  using value_type = typename Provider::value_type;
-
   Get(Provider&& provider, size_t amount) :
     provider(std::move(provider)), 
     amount(amount)
@@ -174,7 +164,7 @@ public:
     return false;
   }
 
-  std::shared_ptr<value_type> GetValue() {
+  auto& GetValue() {
     return provider.GetValue();
   }
 
@@ -188,8 +178,6 @@ template <class Provider>
 class Skip final
 {
 public:
-  using value_type = typename Provider::value_type;
-
   Skip(Provider&& provider, size_t amount) :
     provider(std::move(provider)),
     amount(amount)
@@ -204,7 +192,7 @@ public:
     return provider.Advance();
   }
 
-  std::shared_ptr<value_type> GetValue() {
+  auto& GetValue() {
     return provider.GetValue();
   }
 
@@ -217,10 +205,12 @@ private:
 template <class Provider, class Transform>
 class Map final
 {
-public:
-  using value_type = 
-    std::invoke_result_t<Transform, typename Provider::value_type>;
+  using value_type = std::invoke_result_t<
+    Transform,
+    decltype(std::declval<Provider>().GetValue())
+    >;
 
+public:
   Map(Provider&& provider, Transform&& transform) :
     provider(std::move(provider)),
     transform(std::forward<Transform>(transform))
@@ -230,21 +220,29 @@ public:
     return provider.Advance();
   }
 
-  std::shared_ptr<value_type> GetValue() {
-    return std::make_shared<value_type>(
-      transform(std::move(*provider.GetValue())));
+  auto& GetValue() {
+    if constexpr (std::is_reference_v<value_type>) {
+      return transform(provider.GetValue());
+    } else {
+      current = transform(provider.GetValue());
+      return current.value();
+    }
   }
 
 private:
   Provider provider;
   Transform transform;
+  std::conditional_t<
+    std::is_reference_v<value_type>,
+    int, // unused type
+    std::optional<value_type>
+  > current;
 };
 
 template <class Provider, class Predicate>
 class Filter final
 {
 public:
-  using value_type = typename Provider::value_type;
 
   Filter(Provider&& provider, Predicate&& predicate) :
     provider(std::move(provider)),
@@ -253,29 +251,28 @@ public:
 
   bool Advance() {
     while (provider.Advance()) {
-      current = provider.GetValue();
-      if (predicate(*current))
+      if (predicate(provider.GetValue()))
         return true;
     }
-    current.reset();
     return false;
   }
 
-  std::shared_ptr<value_type> GetValue() {
-    return current;
+  auto& GetValue() {
+    return provider.GetValue();
   }
 
 private:
   Provider provider;
   Predicate predicate;
-  std::shared_ptr<value_type> current;
 };
 
 template <class Provider>
 class Group final
 {
+  using value_type = 
+    std::vector<typename Provider::value_type>;
+
 public:
-  using value_type = std::vector<typename Provider::value_type>;
 
   Group(Provider&& provider, size_t size) :
     provider(std::move(provider)),
@@ -283,14 +280,12 @@ public:
   {}
 
   bool Advance() {
-    if (streamEnded) {
-      current.reset();
+    if (streamEnded)
       return false;
-    }
-    current = std::make_shared<value_type>();
+    current.clear();
     for (size_t i = 0; i < size; ++i) {
       if (provider.Advance()) {
-        current->emplace_back(std::move(*provider.GetValue()));
+        current.emplace_back(std::move(provider.GetValue()));
       } else {
         streamEnded = true;
         break;
@@ -299,14 +294,14 @@ public:
     return true;
   }
 
-  std::shared_ptr<value_type> GetValue() {
+  auto& GetValue() {
     return current;
   }
 
 private:
   Provider provider;
   size_t size;
-  std::shared_ptr<value_type> current;
+  value_type current;
   bool streamEnded = false;
 };
 
@@ -388,6 +383,32 @@ struct is_provider<Group<Provider>> :
 
 template <class Provider>
 constexpr bool is_provider_v = is_provider<Provider>::value;
+
+/*
+  Dor example, container-based or iterator-based providers satisfy this
+    but generator-based providers do not,
+    because only one value at a time can be available 
+    as others do not exist in memory
+*/
+template <class Provider>
+struct all_values_available :
+  std::false_type {};
+
+template <class IteratorType>
+struct all_values_available<Iterator<IteratorType>> :
+  std::true_type {};
+
+template <class GeneratorType>
+struct all_values_available<Generator<GeneratorType>> :
+  std::false_type {};
+
+template <class ContainerType>
+struct all_values_available<Container<ContainerType>> :
+  std::true_type {};
+
+template <template <class> class Provider, class BaseProvider>
+struct all_values_available<Provider<BaseProvider>> :
+  all_values_available<BaseProvider> {};
 
 } // namespace traits
 } // namespace providers
