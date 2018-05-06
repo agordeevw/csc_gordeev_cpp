@@ -34,7 +34,7 @@ auto sum() {
   return Terminator(
     terminators::Reduce(
       [](auto&& x) -> auto&& { return x; },
-      [](auto&& x, auto&& y) -> auto&& { return x + y; }
+      [](auto&& x, auto&& y) { return x + y; }
     )
   );
 }

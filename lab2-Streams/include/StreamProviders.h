@@ -270,7 +270,8 @@ template <class Provider>
 class Group final
 {
   using value_type = 
-    std::vector<typename Provider::value_type>;
+    std::vector<std::remove_reference_t<
+      decltype(std::declval<Provider>().GetValue())>>;
 
 public:
 
