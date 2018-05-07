@@ -425,7 +425,7 @@ int main(int, char**)
       (Stream(randomData)
         | print_to(std::cout)) << std::endl;
 
-      std::cout << "Minimal of these values:\n";
+      std::cout << "Minimal of these values (reduce):\n";
 
       std::cout << (
         Stream(randomData)

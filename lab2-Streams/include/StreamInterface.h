@@ -30,16 +30,6 @@ auto reduce(IdentityFn&& identityFn, Accumulator&& accum) {
   );
 }
 
-template <class IdentityFn, class Accumulator>
-auto reduce_with_references(IdentityFn&& identityFn, Accumulator&& accum) {
-  return Terminator(
-    terminators::Reduce<IdentityFn, Accumulator, true>(
-      std::forward<IdentityFn>(identityFn),
-      std::forward<Accumulator>(accum)
-    )
-  );
-}
-
 auto sum() {
   return Terminator(
     terminators::Reduce(

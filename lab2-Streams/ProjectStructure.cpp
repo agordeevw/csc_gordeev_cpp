@@ -87,15 +87,6 @@ namespace stream
       template <class T>
       struct is_provider;
 
-      /*
-        Checks if each value of data provider can be accessible at any time
-          during stream execution.
-        Generator-based providers store only last generated element,
-          while container-based providers store all elements.
-      */
-      template <class Provider>
-      struct all_values_available;
-
     } // namespace traits
   } // namespace providers
 

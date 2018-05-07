@@ -378,51 +378,6 @@ struct is_provider<Group<Provider>> :
 template <class Provider>
 constexpr bool is_provider_v = is_provider<Provider>::value;
 
-/*
-  Check if all values of stream provider can be accessed during execution.
-  For example, container-based or iterator-based providers satisfy this
-    but generator-based providers do not,
-    because only one value at a time can be available 
-    as others do not exist in memory
-*/
-template <class Provider>
-struct all_values_available {};
-
-template <class IteratorType>
-struct all_values_available<Iterator<IteratorType>> :
-  std::true_type {};
-
-template <class GeneratorType>
-struct all_values_available<Generator<GeneratorType>> :
-  std::false_type {};
-
-template <class ContainerType>
-struct all_values_available<Container<ContainerType>> :
-  std::true_type {};
-
-template <class Provider>
-struct all_values_available<Get<Provider>> : 
-  all_values_available<Provider> {};
-
-template <class Provider>
-struct all_values_available<Skip<Provider>> :
-  all_values_available<Provider> {};
-
-template <class Provider, class Transform>
-struct all_values_available<Map<Provider, Transform>> : 
-  all_values_available<Provider> {};
-
-template <class Provider, class Predicate>
-struct all_values_available<Filter<Provider, Predicate>> : 
-  all_values_available<Provider> {};
-
-template <class Provider>
-struct all_values_available<Group<Provider>> : 
-  all_values_available<Provider> {};
-
-template <class Provider>
-constexpr bool all_values_available_v = all_values_available<Provider>::value;
-
 } // namespace traits
 } // namespace providers
 } // namespace stream

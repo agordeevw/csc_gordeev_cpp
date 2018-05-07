@@ -22,25 +22,9 @@ namespace terminators {
     EmptyStreamException must be thrown.
 */
 
-template <class IdentityFn, class Accumulator, bool tryOptimized = false>
+template <class IdentityFn, class Accumulator>
 class Reduce
 {
-
-template <class Provider>
-using identity_value_type =
-  std::invoke_result_t<
-    IdentityFn,
-    decltype(std::declval<Provider>().GetValue())
-    >;
-
-template <class Provider>
-using accum_value_type = 
-  std::invoke_result_t<
-    Accumulator,
-    identity_value_type<Provider>,
-    decltype(std::declval<Provider>().GetValue())
-    >;
-
 public:
   Reduce(IdentityFn&& identityFn, Accumulator&& accum) :
     identityFn(std::forward<IdentityFn>(identityFn)),
@@ -52,48 +36,13 @@ public:
     auto& provider = stream.GetProvider();
     if (!provider.Advance())
       throw EmptyStreamException();
-
-    if constexpr (tryOptimized 
-      && std::is_reference_v<accum_value_type<Provider>>) {
-        return OptimizedReduce(provider);
-      } else {
-        return UnoptimizedReduce(provider);
-      }
-  }
-
-private:
-  template <class Provider>
-  auto UnoptimizedReduce(Provider& provider) {
     auto result(identityFn(provider.GetValue()));
     while (provider.Advance())
       result = accum(result, provider.GetValue());
     return result;
   }
 
-  template <class Provider>
-  auto OptimizedReduce(Provider& provider) {
-    using identity_value_type_unref = 
-      std::remove_reference_t<identity_value_type<Provider>>;
-
-    identity_value_type_unref* result;
-    std::optional<identity_value_type_unref> temp;
-
-    if constexpr (std::is_reference_v<identity_value_type<Provider>>) {
-      result = &identityFn(provider.GetValue());
-    } else {
-      temp = identityFn(provider.GetValue());
-      result = &temp;
-    } 
-
-    while (provider.Advance())
-      result = &accum(*result, provider.GetValue());
-
-    if constexpr (std::is_const_v<decltype(*result)>)
-      return *result;
-    else
-      return std::move(*result);
-  }
-
+private:
   IdentityFn identityFn;
   Accumulator accum;
 };
@@ -168,8 +117,8 @@ namespace traits
   template <class>
   struct supports_infinite {};
 
-  template <class I, class A, bool b>
-  struct supports_infinite<Reduce<I, A, b>> :
+  template <class I, class A>
+  struct supports_infinite<Reduce<I, A>> :
     std::false_type {};
 
   template <>
