@@ -3,6 +3,7 @@
 
 #include "StreamTerminators.h"
 #include "StreamOperators.h"
+#include "StreamOperations.h"
 
 namespace stream {
 

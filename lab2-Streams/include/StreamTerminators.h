@@ -3,6 +3,8 @@
 
 #include <iostream>
 
+#include "StreamProviders.h"
+
 namespace stream {
 
 template <class> class Stream;

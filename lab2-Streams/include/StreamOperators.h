@@ -1,6 +1,8 @@
 #ifndef INCLUDE_STREAMOPERATORS_H
 #define INCLUDE_STREAMOPERATORS_H
 
+#include "StreamProviders.h"
+
 namespace stream {
 
 template <class> class Stream;
@@ -28,7 +30,7 @@ namespace operators {
 class Get
 {
 public:
-  Get(size_t amount) :
+  Get(std::size_t amount) :
     amount(amount)
   {}
 
@@ -43,7 +45,7 @@ public:
   }
 
 private:
-  size_t amount;
+  std::size_t amount;
 };
 
 class Skip
