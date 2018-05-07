@@ -15,7 +15,7 @@ namespace operators {
   Operators __ARE NOT ALLOWED AT ANY CIRCUMSTANCES__ 
     to perform any operations with providers
     (e.g. use provider.GetValue() and provider.Advance())
-    to enforce the rule that operators do not perform any computations
+    to enforce the rule that no calculations happen
     before stream is terminated.
 
   Information:

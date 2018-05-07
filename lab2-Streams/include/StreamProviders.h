@@ -44,9 +44,9 @@ namespace providers {
   auto& GetValue()
     Returns current element of stream.
     Requires Advance() to be called at least once, otherwise
-      behavior is undefined (unitialized initial value).
+      behavior is undefined.
     Requires Advance() to be called after each call to GetValue(),
-      otherwise behavior is undefined (using value that was moved from).
+      otherwise behavior is undefined.
     If Advance() returned false, following calls of GetValue()
       are undefined.
 */
