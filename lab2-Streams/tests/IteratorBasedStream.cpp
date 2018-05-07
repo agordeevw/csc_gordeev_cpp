@@ -52,6 +52,13 @@ TEST(IteratorBasedStream, ClosedStreamBehavior)
   auto newStream = otherStream | get(10);
   ASSERT_FALSE(newStream.GetProvider().IsClosed());
   ASSERT_TRUE(otherStream.GetProvider().IsClosed());
+
+  auto makeStream = [](auto& container) {
+    return Stream(container.begin(), container.end());
+  };
+
+  auto createdStream = makeStream(container);
+  ASSERT_FALSE(createdStream.GetProvider().IsClosed());
 }
 
 TEST(IteratorBasedStream, ReduceTerminator)
