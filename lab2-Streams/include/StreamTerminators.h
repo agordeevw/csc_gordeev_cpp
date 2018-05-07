@@ -22,7 +22,7 @@ namespace terminators {
     EmptyStreamException must be thrown.
 */
 
-template <class IdentityFn, class Accumulator>
+template <class IdentityFn, class Accumulator, bool tryOptimized = false>
 class Reduce
 {
 
@@ -53,23 +53,12 @@ public:
     if (!provider.Advance())
       throw EmptyStreamException();
 
-    if constexpr (providers::traits::all_values_available<Provider>::value) {
-      if constexpr (std::is_reference_v<accum_value_type<Provider>>) {
+    if constexpr (tryOptimized 
+      && std::is_reference_v<accum_value_type<Provider>>) {
         return OptimizedReduce(provider);
       } else {
         return UnoptimizedReduce(provider);
       }
-    } else {
-      static_assert(
-        !std::is_reference_v<accum_value_type<Provider>>, 
-        "Accumulator return type is reference, "
-        "not all stream values can be accessed at any time during execution, "
-        "correct behavior is not guaranteed. "
-        "Consider changing accumulator return type from reference to value "
-        "or checking that stream is based on finite accessible range "
-        "(i.e. container or iterator).");
-      return UnoptimizedReduce(provider);
-    }
   }
 
 private:
@@ -179,8 +168,8 @@ namespace traits
   template <class>
   struct supports_infinite {};
 
-  template <class I, class A>
-  struct supports_infinite<Reduce<I, A>> :
+  template <class I, class A, bool b>
+  struct supports_infinite<Reduce<I, A, b>> :
     std::false_type {};
 
   template <>

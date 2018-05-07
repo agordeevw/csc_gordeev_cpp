@@ -231,7 +231,7 @@ int main(int, char**)
               }
             );
       std::cout << val << std::endl;
-    }    
+    }   
 
     {
       std::cout << "initialization list:\n";
