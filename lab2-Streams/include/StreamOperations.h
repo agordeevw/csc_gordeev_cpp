@@ -1,5 +1,7 @@
-#ifndef INCLUDE_STREAMOPERATIONS_H
-#define INCLUDE_STREAMOPERATIONS_H
+#ifndef LAB2_STREAMS_INCLUDE_STREAMOPERATIONS_H_
+#define LAB2_STREAMS_INCLUDE_STREAMOPERATIONS_H_
+
+#include <utility>
 
 #include "StreamProviders.h"
 #include "StreamTerminators.h"
@@ -32,7 +34,7 @@ template <class F>
 class Terminator
 {
 public:
-  Terminator(F&& term) : 
+  explicit Terminator(F&& term) :
     term(std::forward<F>(term))
   {}
 
@@ -56,7 +58,7 @@ template <class F>
 class Operator
 {
 public:
-  Operator(F&& op) :
+  explicit Operator(F&& op) :
     op(std::forward<F>(op))
   {}
 
@@ -68,15 +70,13 @@ public:
   template <class G>
   auto operator|(Operator<G>&& other) {
     return Operator<Compose<G, F>>(
-      Compose(std::move(other.op), std::move(op))
-    );
+      Compose(std::move(other.op), std::move(op)));
   }
 
   template <class G>
   auto operator|(Terminator<G>&& other) {
     return Terminator<Compose<G, F>>(
-      Compose(std::move(other.term), std::move(op))
-    );
+      Compose(std::move(other.term), std::move(op)));
 }
 
   template<class> friend class Operator;
@@ -85,6 +85,6 @@ private:
   F op;
 };
 
-} // namespace stream
+}  // namespace stream
 
-#endif
+#endif  // LAB2_STREAMS_INCLUDE_STREAMOPERATIONS_H_

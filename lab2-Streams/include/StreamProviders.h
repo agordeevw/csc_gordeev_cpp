@@ -1,22 +1,22 @@
-#ifndef INCLUDE_STREAMPROVIDERS_H
-#define INCLUDE_STREAMPROVIDERS_H
+#ifndef LAB2_STREAMS_INCLUDE_STREAMPROVIDERS_H_
+#define LAB2_STREAMS_INCLUDE_STREAMPROVIDERS_H_
 
 #include <optional>
 #include <stdexcept>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 namespace stream {
 
 /*
-  Empty streams are prohibited, 
+  Empty streams are prohibited,
     do not hesitate to throw exceptions.
 */
 
-class EmptyStreamException : public std::logic_error
-{
+class EmptyStreamException : public std::logic_error {
 public:
-  EmptyStreamException() : 
+  EmptyStreamException() :
     std::logic_error("Empty stream")
   {}
 };
@@ -32,7 +32,7 @@ namespace providers {
     auto& GetValue();
   }
 
-  All provider traits for new provider must be defined, 
+  All provider traits for new provider must be defined,
     otherwise compilation will fail.
 
   bool Advance()
@@ -82,11 +82,11 @@ private:
 template <class GeneratorType>
 class Generator final
 {
-  using value_type = 
+  using value_type =
     std::invoke_result_t<GeneratorType>;
 
 public:
-  Generator(GeneratorType&& generator) :
+  explicit Generator(GeneratorType&& generator) :
     generator(std::forward<GeneratorType>(generator))
   {}
 
@@ -108,12 +108,12 @@ template <class ContainerType>
 class Container final
 {
 public:
-  Container(ContainerType&& container) :
+  explicit Container(ContainerType&& container) :
     container(std::move(container)),
     provider(this->container.begin(), this->container.end())
   {}
 
-  Container(Container&& other) :
+  explicit Container(Container&& other) :
     container(std::move(other.container)),
     provider(this->container.begin(), this->container.end()),
     advanceCount(other.advanceCount)
@@ -145,7 +145,7 @@ class Get final
 {
 public:
   Get(Provider&& provider, size_t amount) :
-    provider(std::move(provider)), 
+    provider(std::move(provider)),
     amount(amount)
   {}
 
@@ -227,7 +227,7 @@ private:
   Transform transform;
   std::conditional_t<
     std::is_reference_v<value_type>,
-    int, // unused type
+    int,  // unused type
     std::optional<value_type>
   > current;
 };
@@ -236,7 +236,6 @@ template <class Provider, class Predicate>
 class Filter final
 {
 public:
-
   Filter(Provider&& provider, Predicate&& predicate) :
     provider(std::move(provider)),
     predicate(std::forward<Predicate>(predicate))
@@ -262,12 +261,11 @@ private:
 template <class Provider>
 class Group final
 {
-  using value_type = 
+  using value_type =
     std::vector<std::remove_reference_t<
       decltype(std::declval<Provider>().GetValue())>>;
 
 public:
-
   Group(Provider&& provider, size_t size) :
     provider(std::move(provider)),
     size(size)
@@ -305,19 +303,19 @@ template <class Provider>
 struct is_finite {};
 
 template <class IteratorType>
-struct is_finite<Iterator<IteratorType>> : 
+struct is_finite<Iterator<IteratorType>> :
   std::true_type {};
 
 template <class GeneratorType>
-struct is_finite<Generator<GeneratorType>> : 
+struct is_finite<Generator<GeneratorType>> :
   std::false_type {};
 
 template <class ContainerType>
-struct is_finite<Container<ContainerType>> : 
+struct is_finite<Container<ContainerType>> :
   std::true_type {};
 
 template <class Provider>
-struct is_finite<Get<Provider>> : 
+struct is_finite<Get<Provider>> :
   std::true_type {};
 
 template <class Provider>
@@ -325,38 +323,38 @@ struct is_finite<Skip<Provider>> :
   is_finite<Provider> {};
 
 template <class Provider, class Transform>
-struct is_finite<Map<Provider, Transform>> : 
+struct is_finite<Map<Provider, Transform>> :
   is_finite<Provider> {};
 
 template <class Provider, class Predicate>
-struct is_finite<Filter<Provider, Predicate>> : 
+struct is_finite<Filter<Provider, Predicate>> :
   is_finite<Provider> {};
 
 template <class Provider>
-struct is_finite<Group<Provider>> : 
+struct is_finite<Group<Provider>> :
   is_finite<Provider> {};
 
 template <class Provider>
 constexpr bool is_finite_v = is_finite<Provider>::value;
 
 template <class T>
-struct is_provider : 
+struct is_provider :
   std::false_type {};
 
 template <class IteratorType>
-struct is_provider<Iterator<IteratorType>> : 
+struct is_provider<Iterator<IteratorType>> :
   std::true_type {};
 
 template <class GeneratorType>
-struct is_provider<Generator<GeneratorType>> : 
+struct is_provider<Generator<GeneratorType>> :
   std::true_type {};
 
 template <class ContainerType>
-struct is_provider<Container<ContainerType>> : 
+struct is_provider<Container<ContainerType>> :
   std::true_type {};
 
 template <class Provider>
-struct is_provider<Get<Provider>> : 
+struct is_provider<Get<Provider>> :
   is_provider<Provider> {};
 
 template <class Provider>
@@ -364,22 +362,22 @@ struct is_provider<Skip<Provider>> :
   is_provider<Provider> {};
 
 template <class Provider, class Transform>
-struct is_provider<Map<Provider, Transform>> : 
+struct is_provider<Map<Provider, Transform>> :
   is_provider<Provider> {};
 
 template <class Provider, class Predicate>
-struct is_provider<Filter<Provider, Predicate>> : 
+struct is_provider<Filter<Provider, Predicate>> :
   is_provider<Provider> {};
 
 template <class Provider>
-struct is_provider<Group<Provider>> : 
+struct is_provider<Group<Provider>> :
   is_provider<Provider> {};
 
 template <class Provider>
 constexpr bool is_provider_v = is_provider<Provider>::value;
 
-} // namespace traits
-} // namespace providers
-} // namespace stream
+}  // namespace traits
+}  // namespace providers
+}  // namespace stream
 
-#endif
+#endif  // LAB2_STREAMS_INCLUDE_STREAMPROVIDERS_H_

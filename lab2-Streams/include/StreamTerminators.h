@@ -1,7 +1,9 @@
-#ifndef INCLUDE_STREAMTERMINATORS_H
-#define INCLUDE_STREAMTERMINATORS_H
+#ifndef LAB2_STREAMS_INCLUDE_STREAMTERMINATORS_H_
+#define LAB2_STREAMS_INCLUDE_STREAMTERMINATORS_H_
 
 #include <iostream>
+#include <utility>
+#include <vector>
 
 #include "StreamProviders.h"
 
@@ -20,7 +22,7 @@ namespace terminators {
   All terminator traits for new terminator must be implemented,
     otherwise compilation will fail.
 
-  If stream is empty, 
+  If stream is empty,
     EmptyStreamException must be thrown.
 */
 
@@ -52,7 +54,7 @@ private:
 class PrintTo
 {
 public:
-  PrintTo(std::ostream& os, const char* delimiter) : 
+  PrintTo(std::ostream& os, const char* delimiter) :
     os(os),
     delimiter(delimiter)
   {}
@@ -97,7 +99,7 @@ public:
 class Nth
 {
 public:
-  Nth(size_t index) :
+  explicit Nth(size_t index) :
     index(index)
   {}
 
@@ -116,34 +118,34 @@ private:
 
 namespace traits
 {
-  template <class>
-  struct supports_infinite {};
+template <class>
+struct supports_infinite {};
 
-  template <class I, class A>
-  struct supports_infinite<Reduce<I, A>> :
-    std::false_type {};
+template <class I, class A>
+struct supports_infinite<Reduce<I, A>> :
+  std::false_type {};
 
-  template <>
-  struct supports_infinite<PrintTo> :
-    std::false_type {};
+template <>
+struct supports_infinite<PrintTo> :
+  std::false_type {};
 
-  template <>
-  struct supports_infinite<ToVector>:
-    std::false_type {};
+template <>
+struct supports_infinite<ToVector>:
+  std::false_type {};
 
-  template <>
-  struct supports_infinite<Nth>:
-    std::true_type {};
+template <>
+struct supports_infinite<Nth>:
+  std::true_type {};
 
-  template <class Term, class Op>
-  struct supports_infinite<Compose<Term, Op>> :
-    supports_infinite<Term> {};
+template <class Term, class Op>
+struct supports_infinite<Compose<Term, Op>> :
+  supports_infinite<Term> {};
 
-  template <class Term>
-  constexpr bool supports_infinite_v = supports_infinite<Term>::value;
+template <class Term>
+constexpr bool supports_infinite_v = supports_infinite<Term>::value;
 
-} // namespace traits
-} // namespace terminators
-} // namespace stream
+}  // namespace traits
+}  // namespace terminators
+}  // namespace stream
 
-#endif
+#endif  // LAB2_STREAMS_INCLUDE_STREAMTERMINATORS_H_

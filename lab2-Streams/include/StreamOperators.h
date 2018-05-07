@@ -1,5 +1,7 @@
-#ifndef INCLUDE_STREAMOPERATORS_H
-#define INCLUDE_STREAMOPERATORS_H
+#ifndef LAB2_STREAMS_INCLUDE_STREAMOPERATORS_H_
+#define LAB2_STREAMS_INCLUDE_STREAMOPERATORS_H_
+
+#include <utility>
 
 #include "StreamProviders.h"
 
@@ -14,7 +16,7 @@ namespace operators {
     template <class Provider>
     auto operator()(Stream<Provider>&&) -> Stream<...>
 
-  Operators __ARE NOT ALLOWED AT ANY CIRCUMSTANCES__ 
+  Operators __ARE NOT ALLOWED AT ANY CIRCUMSTANCES__
     to perform any operations with providers
     (e.g. use provider.GetValue() and provider.Advance())
     to enforce the rule that no calculations happen
@@ -30,7 +32,7 @@ namespace operators {
 class Get
 {
 public:
-  Get(std::size_t amount) :
+  explicit Get(std::size_t amount) :
     amount(amount)
   {}
 
@@ -39,9 +41,7 @@ public:
     return Stream(
       providers::Get<Provider>(
         std::move(stream.GetProvider()),
-        amount
-      )
-    );
+        amount));
   }
 
 private:
@@ -51,7 +51,7 @@ private:
 class Skip
 {
 public:
-  Skip(size_t amount) : 
+  explicit Skip(size_t amount) :
     amount(amount)
   {}
 
@@ -60,9 +60,7 @@ public:
     return Stream(
       providers::Skip<Provider>(
         std::move(stream.GetProvider()),
-        amount
-      )
-    );
+        amount));
   }
 
 private:
@@ -73,7 +71,7 @@ template <class Transform>
 class Map
 {
 public:
-  Map(Transform&& transform) : 
+  explicit Map(Transform&& transform) :
     transform(std::forward<Transform>(transform))
   {}
 
@@ -81,10 +79,8 @@ public:
   auto operator()(Stream<Provider>&& stream) {
     return Stream(
       providers::Map<Provider, Transform>(
-        std::move(stream.GetProvider()), 
-        std::forward<Transform>(transform)
-      )
-    );
+        std::move(stream.GetProvider()),
+        std::forward<Transform>(transform)));
   }
 
 private:
@@ -95,18 +91,16 @@ template <class Predicate>
 class Filter
 {
 public:
-  Filter(Predicate&& predicate) :
+  explicit Filter(Predicate&& predicate) :
     predicate(std::forward<Predicate>(predicate))
   {}
 
-  template <class Provider> 
+  template <class Provider>
   auto operator() (Stream<Provider>&& stream) {
     return Stream(
       providers::Filter<Provider, Predicate>(
         std::move(stream.GetProvider()),
-        std::forward<Predicate>(predicate)
-      )
-    );
+        std::forward<Predicate>(predicate)));
   }
 
 private:
@@ -116,7 +110,7 @@ private:
 class Group
 {
 public:
-  Group(size_t size) : 
+  explicit Group(size_t size) :
     size(size)
   {}
 
@@ -125,16 +119,14 @@ public:
     return Stream(
       providers::Group<Provider>(
         std::move(stream.GetProvider()),
-        size
-      )
-    );
+        size));
   }
 
 private:
   size_t size;
 };
 
-} // namespace operators
-} // namespace stream
+}  // namespace operators
+}  // namespace stream
 
-#endif
+#endif  // LAB2_STREAMS_INCLUDE_STREAMOPERATORS_H_
