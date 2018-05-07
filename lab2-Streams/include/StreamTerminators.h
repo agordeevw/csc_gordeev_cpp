@@ -83,7 +83,8 @@ public:
   template <class Provider>
   auto operator()(Stream<Provider>&& stream) {
     using value_type =
-      std::remove_reference_t<decltype(std::declval<Provider>().GetValue())>;
+      std::remove_const_t<std::remove_reference_t<
+        decltype(std::declval<Provider>().GetValue())>>;
 
     auto& provider = stream.GetProvider();
     std::vector<value_type> result;

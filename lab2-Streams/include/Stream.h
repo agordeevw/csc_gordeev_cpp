@@ -60,16 +60,6 @@ public:
   Stream(const Stream&) = delete;
   Stream& operator=(const Stream&) = delete;
 
-  Stream(Stream&& other) :
-    provider(std::move(other.provider))
-  {}
-
-  Stream& operator=(Stream&& other) {
-    if (this != &other)
-      provider = std::move(other.provider);
-    return *this;
-  }
-
   template <class Iterator, class =
     std::enable_if_t<
       !std::is_same_v<

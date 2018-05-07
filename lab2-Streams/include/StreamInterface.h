@@ -24,7 +24,7 @@ auto reduce(Accumulator&& accum) {
 template <class IdentityFn, class Accumulator>
 auto reduce(IdentityFn&& identityFn, Accumulator&& accum) {
   return Terminator(
-    terminators::Reduce(
+    terminators::Reduce<IdentityFn, Accumulator>(
       std::forward<IdentityFn>(identityFn),
       std::forward<Accumulator>(accum)));
 }
@@ -63,14 +63,14 @@ auto get(size_t n) {
 template <class Transform>
 auto map(Transform&& transform) {
   return Operator(
-    operators::Map(
+    operators::Map<Transform>(
       std::forward<Transform>(transform)));
 }
 
 template <class Predicate>
 auto filter(Predicate&& predicate) {
   return Operator(
-    operators::Filter(
+    operators::Filter<Predicate>(
       std::forward<Predicate>(predicate)));
 }
 

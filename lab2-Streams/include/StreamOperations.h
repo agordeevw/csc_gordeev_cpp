@@ -45,6 +45,10 @@ public:
       providers::traits::is_finite_v<Provider>
         || terminators::traits::supports_infinite_v<F>,
       "Terminator doesn\'t support infinite streams");
+    if (stream.GetProvider().IsClosed()) {
+      throw StreamClosedException();
+    }
+    stream.GetProvider().Close();
     return term(std::move(stream));
   }
 
@@ -64,6 +68,9 @@ public:
 
   template <class Provider>
   auto Apply(Stream<Provider>&& stream) {
+    if (stream.GetProvider().IsClosed()) {
+      throw StreamClosedException();
+    }
     return op(std::move(stream));
   }
 

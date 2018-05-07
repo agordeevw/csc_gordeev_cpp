@@ -12,12 +12,23 @@ namespace stream {
 /*
   Empty streams are prohibited,
     do not hesitate to throw exceptions.
+  Streams are not reusable.
+    If operator or terminator was applied to stream,
+    the initial stream is no longer accessible
+    and StreamClosedException is thrown.
 */
 
 class EmptyStreamException : public std::logic_error {
 public:
   EmptyStreamException() :
     std::logic_error("Empty stream")
+  {}
+};
+
+class StreamClosedException : public std::logic_error {
+public:
+  StreamClosedException() :
+    std::logic_error("Stream closed")
   {}
 };
 
@@ -51,8 +62,22 @@ namespace providers {
       are undefined.
 */
 
+template <class Derived>
+class CloseableProvider
+{
+public:
+  CloseableProvider() {}
+  CloseableProvider(CloseableProvider&& other) {
+    other.Close();
+  }
+  bool IsClosed() { return closed; }
+  void Close() { closed = true; }
+private:
+  bool closed = false;
+};
+
 template <class IteratorType>
-class Iterator final
+class Iterator final : public CloseableProvider<Iterator<IteratorType>>
 {
 public:
   Iterator(IteratorType begin, IteratorType end) :
@@ -80,7 +105,7 @@ private:
 };
 
 template <class GeneratorType>
-class Generator final
+class Generator final : public CloseableProvider<Generator<GeneratorType>>
 {
   using value_type =
     std::invoke_result_t<GeneratorType>;
@@ -105,7 +130,7 @@ private:
 };
 
 template <class ContainerType>
-class Container final
+class Container final : public CloseableProvider<Container<ContainerType>>
 {
 public:
   explicit Container(ContainerType&& container) :
@@ -141,7 +166,7 @@ private:
 };
 
 template <class Provider>
-class Get final
+class Get final : public CloseableProvider<Get<Provider>>
 {
 public:
   Get(Provider&& provider, size_t amount) :
@@ -168,7 +193,7 @@ private:
 };
 
 template <class Provider>
-class Skip final
+class Skip final : public CloseableProvider<Skip<Provider>>
 {
 public:
   Skip(Provider&& provider, size_t amount) :
@@ -196,7 +221,7 @@ private:
 };
 
 template <class Provider, class Transform>
-class Map final
+class Map final : public CloseableProvider<Map<Provider, Transform>>
 {
   using value_type = std::invoke_result_t<
     Transform,
@@ -233,7 +258,7 @@ private:
 };
 
 template <class Provider, class Predicate>
-class Filter final
+class Filter final : public CloseableProvider<Filter<Provider, Predicate>>
 {
 public:
   Filter(Provider&& provider, Predicate&& predicate) :
@@ -259,7 +284,7 @@ private:
 };
 
 template <class Provider>
-class Group final
+class Group final : public CloseableProvider<Group<Provider>>
 {
   using value_type =
     std::vector<std::remove_reference_t<

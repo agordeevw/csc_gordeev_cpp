@@ -88,17 +88,17 @@ std::ostream& operator<<(std::ostream& os, const CountedNoisy<T>& value) {
 }
 
 template <class T>
-class Noised : public CountedNoisy<Noised<T>>
+class NoisyType : public CountedNoisy<NoisyType<T>>
 {
 public:
-  Noised() {}
-  Noised(const T& other) : value(other) {}
-  Noised(T&& other) : value(std::move(other)) {}
-  Noised& operator=(const T& other) {
+  NoisyType() {}
+  NoisyType(const T& other) : value(other) {}
+  NoisyType(T&& other) : value(std::move(other)) {}
+  NoisyType& operator=(const T& other) {
     value = other;
     return *this;
   }
-  Noised& operator=(T&& other) {
+  NoisyType& operator=(T&& other) {
     value = std::move(other);
     return *this;
   }
@@ -111,32 +111,32 @@ private:
 };
 
 template <class T>
-std::ostream& operator<<(std::ostream& os, const Noised<T>& value) {
+std::ostream& operator<<(std::ostream& os, const NoisyType<T>& value) {
   os << value.Value() << " (";
-  os << static_cast<const CountedNoisy<Noised<T>>&>(value) << ")";
+  os << static_cast<const CountedNoisy<NoisyType<T>>&>(value) << ")";
   return os;
 }
 
-class GeneratorNoisedIncr {
+class GeneratorNoisyTypeIncr {
 public:
-  GeneratorNoisedIncr(int start = 0) : 
+  GeneratorNoisyTypeIncr(int start = 0) : 
     counter(start) {}
-  Noised<int> operator()() { 
-    return Noised<int>(counter++);
+  NoisyType<int> operator()() { 
+    return NoisyType<int>(counter++);
   }
 
 private:
   int counter = 0;
 };
 
-struct GeneratorNoisedRand {
+struct GeneratorNoisyTypeRand {
 public:
-  GeneratorNoisedRand(): 
+  GeneratorNoisyTypeRand(): 
     min(0), max(100000) {}
-  GeneratorNoisedRand(int min, int max) : 
+  GeneratorNoisyTypeRand(int min, int max) : 
     min(min), max(max) {}
-  Noised<int> operator()() {
-    return Noised<int>(rand() % (max - min) + min);
+  NoisyType<int> operator()() {
+    return NoisyType<int>(rand() % (max - min) + min);
   }
 
 private:
@@ -209,10 +209,10 @@ int main(int, char**)
     }
 
     {
-      Noised<int>::Mute();
+      NoisyType<int>::Mute();
 
       auto vec = 
-        Stream(GeneratorNoisedRand{})
+        Stream(GeneratorNoisyTypeRand{})
         | get(5)
         | to_vector();
 
