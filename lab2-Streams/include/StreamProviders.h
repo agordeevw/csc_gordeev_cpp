@@ -63,11 +63,12 @@ namespace providers {
 */
 
 template <class Derived>
-class CloseableProvider
+class ClosingOnMoveProvider
 {
 public:
-  CloseableProvider() {}
-  CloseableProvider(CloseableProvider&& other) {
+  ClosingOnMoveProvider() {}
+  ClosingOnMoveProvider(const ClosingOnMoveProvider&) = delete;
+  ClosingOnMoveProvider(ClosingOnMoveProvider&& other) {
     other.Close();
   }
   bool IsClosed() { return closed; }
@@ -77,7 +78,7 @@ private:
 };
 
 template <class IteratorType>
-class Iterator final : public CloseableProvider<Iterator<IteratorType>>
+class Iterator final : public ClosingOnMoveProvider<Iterator<IteratorType>>
 {
 public:
   Iterator(IteratorType begin, IteratorType end) :
@@ -105,7 +106,7 @@ private:
 };
 
 template <class GeneratorType>
-class Generator final : public CloseableProvider<Generator<GeneratorType>>
+class Generator final : public ClosingOnMoveProvider<Generator<GeneratorType>>
 {
   using value_type =
     std::invoke_result_t<GeneratorType>;
@@ -130,7 +131,7 @@ private:
 };
 
 template <class ContainerType>
-class Container final : public CloseableProvider<Container<ContainerType>>
+class Container final : public ClosingOnMoveProvider<Container<ContainerType>>
 {
 public:
   explicit Container(ContainerType&& container) :
@@ -166,7 +167,7 @@ private:
 };
 
 template <class Provider>
-class Get final : public CloseableProvider<Get<Provider>>
+class Get final : public ClosingOnMoveProvider<Get<Provider>>
 {
 public:
   Get(Provider&& provider, size_t amount) :
@@ -193,7 +194,7 @@ private:
 };
 
 template <class Provider>
-class Skip final : public CloseableProvider<Skip<Provider>>
+class Skip final : public ClosingOnMoveProvider<Skip<Provider>>
 {
 public:
   Skip(Provider&& provider, size_t amount) :
@@ -221,7 +222,7 @@ private:
 };
 
 template <class Provider, class Transform>
-class Map final : public CloseableProvider<Map<Provider, Transform>>
+class Map final : public ClosingOnMoveProvider<Map<Provider, Transform>>
 {
   using value_type = std::invoke_result_t<
     Transform,
@@ -258,7 +259,7 @@ private:
 };
 
 template <class Provider, class Predicate>
-class Filter final : public CloseableProvider<Filter<Provider, Predicate>>
+class Filter final : public ClosingOnMoveProvider<Filter<Provider, Predicate>>
 {
 public:
   Filter(Provider&& provider, Predicate&& predicate) :
@@ -284,7 +285,7 @@ private:
 };
 
 template <class Provider>
-class Group final : public CloseableProvider<Group<Provider>>
+class Group final : public ClosingOnMoveProvider<Group<Provider>>
 {
   using value_type =
     std::vector<std::remove_reference_t<

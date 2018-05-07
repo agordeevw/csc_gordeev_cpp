@@ -40,6 +40,7 @@ TEST(IteratorBasedStream, EmptyStream)
 TEST(IteratorBasedStream, ClosedStreamBehavior)
 {
   std::vector<int> container{1, 2, 3, 4, 5};
+
   Stream stream(container.begin(), container.end());
   ASSERT_FALSE(stream.GetProvider().IsClosed());
   stream | sum();
