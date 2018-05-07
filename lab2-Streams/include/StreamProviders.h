@@ -67,7 +67,6 @@ class ClosingOnMoveProvider
 {
 public:
   ClosingOnMoveProvider() {}
-  ClosingOnMoveProvider(const ClosingOnMoveProvider&) = delete;
   ClosingOnMoveProvider(ClosingOnMoveProvider&& other) {
     other.Close();
   }

@@ -37,7 +37,7 @@ TEST(IteratorBasedStream, EmptyStream)
     EmptyStreamException);
 }
 
-TEST(IteratorBasedStream, ClosedStreamBehavior)
+TEST(IteratorBasedStream, ClosedStreamTests)
 {
   std::vector<int> container{1, 2, 3, 4, 5};
 
@@ -56,9 +56,16 @@ TEST(IteratorBasedStream, ClosedStreamBehavior)
   auto makeStream = [](auto& container) {
     return Stream(container.begin(), container.end());
   };
+  auto createdFromLambdaStream = makeStream(container);
+  ASSERT_FALSE(createdFromLambdaStream.GetProvider().IsClosed());
+  ASSERT_FALSE(makeStream(container).GetProvider().IsClosed());
 
-  auto createdStream = makeStream(container);
-  ASSERT_FALSE(createdStream.GetProvider().IsClosed());
+  auto makeCompositeStream = [](auto& container) {
+    return Stream(container.begin(), container.end()) | get(10);
+  };
+  auto compositeStream = makeCompositeStream(container);
+  ASSERT_FALSE(compositeStream.GetProvider().IsClosed());
+  ASSERT_FALSE(makeCompositeStream(container).GetProvider().IsClosed());
 }
 
 TEST(IteratorBasedStream, ReduceTerminator)
