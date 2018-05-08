@@ -67,6 +67,7 @@ class ClosingOnMoveProvider
 {
 public:
   ClosingOnMoveProvider() {}
+  ClosingOnMoveProvider(const ClosingOnMoveProvider&) {}
   ClosingOnMoveProvider(ClosingOnMoveProvider&& other) {
     other.Close();
   }
@@ -138,7 +139,18 @@ public:
     provider(this->container.begin(), this->container.end())
   {}
 
+  explicit Container(const Container& other) :
+    ClosingOnMoveProvider<Container<ContainerType>>(other),
+    container(other.container),
+    provider(this->container.begin(), this->container.end()),
+    advanceCount(other.advanceCount)
+  {
+    for (size_t i = 0; i < advanceCount; ++i)
+      provider.Advance();
+  }
+
   explicit Container(Container&& other) :
+    ClosingOnMoveProvider<Container<ContainerType>>(std::move(other)),
     container(std::move(other.container)),
     provider(this->container.begin(), this->container.end()),
     advanceCount(other.advanceCount)

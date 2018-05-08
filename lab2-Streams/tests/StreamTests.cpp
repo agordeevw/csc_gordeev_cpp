@@ -9,63 +9,120 @@
 
 using namespace stream;
 
-TEST(IteratorBasedStream, EmptyStream)
-{
-  std::ostringstream oss;
+class StreamTest : public ::testing::Test {
+protected:
+  std::vector<int> container = {1, 2, 3, 4, 5};
   std::vector<int> emptyContainer;
 
-  EXPECT_THROW(Stream(emptyContainer.begin(), emptyContainer.end())
+  class GeneratorClass {
+  public:
+    int operator()() { return counter++; }
+  private:
+    int counter = 1;
+  };
+
+  auto MakeStreamFromContainerIterators(std::vector<int>& cont) {
+    return Stream(cont.begin(), cont.end());
+  }
+
+  auto MakeStreamFromLvalueContainer(std::vector<int>& cont) {
+    return Stream(cont);
+  }
+
+  auto MakeStreamFromConstContainer(const std::vector<int>& cont) {
+    return Stream(cont);
+  }
+
+  auto MakeStreamFromRvalueContainer(std::vector<int>&& cont) {
+    return Stream(std::move(cont));
+  }
+
+  auto MakeStreamFromIlist() {
+    return Stream{1, 2, 3, 4 ,5};
+  }
+
+  auto MakeStreamFromPack() {
+    return Stream(1, 2, 3, 4, 5);
+  }
+
+  auto MakeStreamFromGenerator() {
+    return Stream(GeneratorClass{}) | get(5);
+  }
+};
+
+template <class StreamGeneratorFunction>
+void DoEmptyStreamTests(StreamGeneratorFunction&& generator) {
+  std::ostringstream oss;
+
+  EXPECT_THROW(generator()
     | reduce(
       [](auto&& x, auto&& y) { return x; }
       ), EmptyStreamException);
-  EXPECT_THROW(Stream(emptyContainer.begin(), emptyContainer.end())
+  EXPECT_THROW(generator()
     | reduce(
       [](auto&& x) { return x; },
       [](auto&& x, auto&& y) { return x; }
       ), EmptyStreamException);
-  EXPECT_THROW(Stream(emptyContainer.begin(), emptyContainer.end())
+  EXPECT_THROW(generator()
     | sum(),
     EmptyStreamException);
-  EXPECT_THROW(Stream(emptyContainer.begin(), emptyContainer.end())
+  EXPECT_THROW(generator()
     | print_to(oss),
     EmptyStreamException);
-  EXPECT_THROW(Stream(emptyContainer.begin(), emptyContainer.end())
+  EXPECT_THROW(generator()
     | to_vector(),
     EmptyStreamException);
-  EXPECT_THROW(Stream(emptyContainer.begin(), emptyContainer.end())
+  EXPECT_THROW(generator()
     | nth(0),
     EmptyStreamException);
 }
 
-TEST(IteratorBasedStream, ClosedStreamTests)
+TEST_F(StreamTest, EmptyStreamInitialization)
 {
-  std::vector<int> container{1, 2, 3, 4, 5};
+  DoEmptyStreamTests([this]{
+    return MakeStreamFromContainerIterators(emptyContainer); });
+  DoEmptyStreamTests([this]{
+    return MakeStreamFromLvalueContainer(emptyContainer); });
+  DoEmptyStreamTests([this]{
+    return MakeStreamFromConstContainer(emptyContainer); });
+  DoEmptyStreamTests([this]{
+    return MakeStreamFromRvalueContainer(std::vector<int>{}); });
+}
 
-  Stream stream(container.begin(), container.end());
+template <class StreamGeneratorFunction>
+void DoClosedCorrectnessTests(StreamGeneratorFunction&& generator) {
+  auto stream = generator();
   ASSERT_FALSE(stream.GetProvider().IsClosed());
-  stream | sum();
-  ASSERT_TRUE(stream.GetProvider().IsClosed());
-  EXPECT_THROW(stream | sum(), StreamClosedException);
+  ASSERT_FALSE(generator().GetProvider().IsClosed());
 
-  Stream otherStream(container.begin(), container.end());
-  ASSERT_FALSE(otherStream.GetProvider().IsClosed());
-  auto newStream = otherStream | get(10);
-  ASSERT_FALSE(newStream.GetProvider().IsClosed());
-  ASSERT_TRUE(otherStream.GetProvider().IsClosed());
-
-  auto makeStream = [](auto& container) {
-    return Stream(container.begin(), container.end());
-  };
-  auto createdFromLambdaStream = makeStream(container);
-  ASSERT_FALSE(createdFromLambdaStream.GetProvider().IsClosed());
-  ASSERT_FALSE(makeStream(container).GetProvider().IsClosed());
-
-  auto makeCompositeStream = [](auto& container) {
-    return Stream(container.begin(), container.end()) | get(10);
-  };
-  auto compositeStream = makeCompositeStream(container);
+  auto compositeStream = generator() | get(10);
   ASSERT_FALSE(compositeStream.GetProvider().IsClosed());
-  ASSERT_FALSE(makeCompositeStream(container).GetProvider().IsClosed());
+  ASSERT_FALSE((generator() | get(10)).GetProvider().IsClosed());
+
+  auto copiedStream = stream;
+  ASSERT_FALSE(copiedStream.GetProvider().IsClosed());
+  ASSERT_FALSE(stream.GetProvider().IsClosed());
+
+  copiedStream | nth(0);
+  ASSERT_TRUE(copiedStream.GetProvider().IsClosed());
+  ASSERT_FALSE(stream.GetProvider().IsClosed());
+  EXPECT_THROW(copiedStream | nth(0), StreamClosedException);
+
+  auto movedToStream = std::move(stream);
+  ASSERT_FALSE(movedToStream.GetProvider().IsClosed());
+  ASSERT_TRUE(stream.GetProvider().IsClosed());
+}
+
+TEST_F(StreamTest, ClosedCorrectness)
+{
+  DoClosedCorrectnessTests([this] {
+    return MakeStreamFromContainerIterators(container); });
+  DoClosedCorrectnessTests([this]{
+    return MakeStreamFromLvalueContainer(container); });
+  DoClosedCorrectnessTests([this]{
+    return MakeStreamFromConstContainer(container); });
+  DoClosedCorrectnessTests([this]{
+    return MakeStreamFromRvalueContainer(std::vector<int>(container)); });
 }
 
 TEST(IteratorBasedStream, ReduceTerminator)

@@ -33,6 +33,15 @@ struct is_container<T, std::conditional_t<
 template <class T>
 constexpr bool is_container_v = is_container<T>::value;
 
+template <class T>
+struct can_be_pack_initialized_from {
+  static constexpr bool value =
+    !providers::traits::is_provider_v<std::remove_reference_t<T>>;
+};
+
+template <template <class> class Stream, class Provider>
+struct can_be_pack_initialized_from<Stream<Provider>&> : std::false_type {};
+
 template <class T, class ... Args>
 void Unpack(std::vector<T>& vec, Args&& ... args) {
   (vec.emplace_back(std::forward<Args>(args)), ...);
@@ -57,8 +66,6 @@ public:
     "Stream provider type is not one of known provider types");
 
   Stream() = delete;
-  Stream(const Stream&) = delete;
-  Stream& operator=(const Stream&) = delete;
 
   template <class Iterator, class =
     std::enable_if_t<
@@ -130,7 +137,12 @@ public:
     provider(std::move(provider))
   {}
 
-  template <class T, class ... Args>
+  template <class T, class ... Args, class =
+    std::enable_if_t<
+      util::can_be_pack_initialized_from<T>::value,
+      void
+    >
+  >
   Stream(T&& arg, Args&& ... args) :
   Stream(util::CreateContainerFrom(
     std::forward<T>(arg), std::forward<Args>(args)...)) {}
@@ -225,7 +237,12 @@ template <class OtherProvider, class =
 Stream(OtherProvider&& provider)
   -> Stream<OtherProvider>;
 
-template <class T, class ... Args>
+template <class T, class ... Args, class =
+  std::enable_if_t<
+    util::can_be_pack_initialized_from<T>::value,
+    void
+  >
+>
 Stream(T&& arg, Args&& ... args)
   -> Stream<providers::Container<std::vector<T>>>;
 
