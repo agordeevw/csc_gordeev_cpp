@@ -10,24 +10,20 @@ hline()
     printf "${NC}\n"
 }
 
-hline cppcheck
-cppcheck --std=c++14 --enable=all --inconclusive -I include/ src/*.cpp tests/*.cpp
-
-hline cppcheck/config
-cppcheck --std=c++14 --check-config -I include/ src/*.cpp tests/*.cpp
-
-hline clang-analyzer
-clang --analyze --analyzer-output text -std=c++17 -x c++ -Wall -pedantic -Iinclude -Ibuild/tests/gtest/src/gtest/googletest/include src/*.cpp tests/*.cpp
+ hline clang-analyzer
+ if (clang --analyze --analyzer-output text -std=c++17 -x c++ -Wall -pedantic -Iinclude -Ibuild/tests/gtest/src/gtest/googletest/include src/*.cpp tests/*.cpp); then
+	echo "All is good" ; fi
 
 hline valgrind/example
 valgrind --leak-check=full bin/example
 
 hline valgrind/tests
-valgrind --leak-check=full bin/EvictingCacheMapUnitTests
+valgrind --leak-check=full bin/StreamTests
 
 hline code_coverage
-cp build/tests/CMakeFiles/EvictingCacheMapUnitTests.dir/EvictingCacheMapTests.cpp.gcno testcoverage.gcno
-cp build/tests/CMakeFiles/EvictingCacheMapUnitTests.dir/EvictingCacheMapTests.cpp.gcda testcoverage.gcda
+cp build/tests/CMakeFiles/StreamTests.dir/StreamTests.cpp.gcno testcoverage.gcno
+cp build/tests/CMakeFiles/StreamTests.dir/StreamTests.cpp.gcda testcoverage.gcda
 gcov -n testcoverage.gcno > testcoverage.gcov
-sed -n '/Evict/{p; n; p}' testcoverage.gcov
+sed -n '/lab2-Streams\/include\|lab2-Streams\/src\|lab2-Streams\/tests/ {p; n; p}' testcoverage.gcov > CodeCoverageInfo
+cat CodeCoverageInfo
 rm testcoverage*

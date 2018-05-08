@@ -86,6 +86,7 @@ protected:
     auto movedToStream = std::move(stream);
     ASSERT_FALSE(movedToStream.GetProvider().IsClosed());
     ASSERT_TRUE(stream.GetProvider().IsClosed());
+    EXPECT_THROW(stream | get(10), StreamClosedException);
   }
 
   template <class StreamGenerator>
@@ -229,7 +230,11 @@ protected:
     std::advance(containerIter, skipAmount);
     EXPECT_TRUE(std::equal(vec.begin(), vec.end(), containerIter));
 
-    size_t overboardSkipAmount = container.size();
+    size_t containerSizeSkipAmount = container.size();
+    EXPECT_THROW(generator() | skip(containerSizeSkipAmount) | to_vector(),
+      EmptyStreamException);
+
+    size_t overboardSkipAmount = container.size() + 1;
     EXPECT_THROW(generator() | skip(overboardSkipAmount) | to_vector(),
       EmptyStreamException);
   }
@@ -240,6 +245,13 @@ protected:
       | map([](auto&& x) { return x; }) | to_vector();
 
     EXPECT_TRUE(std::equal(identityVec.begin(), identityVec.end(),
+      container.begin()));
+
+    auto identityVecUsingRef = generator()
+      | map([](auto&& x) -> auto&& { return x; }) | to_vector();
+
+    EXPECT_TRUE(std::equal(identityVecUsingRef.begin(),
+      identityVecUsingRef.end(),
       container.begin()));
 
     std::ostringstream oss;
@@ -295,6 +307,23 @@ protected:
         return std::equal(lhs.begin(), lhs.end(), rhs.begin());
       }));
   }
+
+  template <class StreamGenerator>
+  void RunCompositeOpTermTests(StreamGenerator&& generator) {
+    auto doubleTransform =
+      map([](int x) { return x % 2 == 0 ? -x : x; })
+      | map([](int x) { return 2 * x; });
+
+    auto groupAndSum =
+      group(2)
+      | map([](auto&& vec) {
+          return std::accumulate(vec.begin(), vec.end(), 0); })
+      | sum();
+
+    auto value = generator() | doubleTransform | groupAndSum;
+
+    EXPECT_EQ(value, 2 - 4 + 6 - 8 + 10);
+  }
 };
 
 #define RUN_STREAM_TESTING_METHOD(testing_method) \
@@ -324,6 +353,11 @@ TEST_F(StreamTest, EmptyStreamInitialization)
     return MakeStreamFromConstContainer(emptyContainer); });
   RunEmptyStreamTests([this]{
     return MakeStreamFromRvalueContainer(std::vector<int>{}); });
+}
+
+TEST_F(StreamTest, ContainerBasedStreamMoveAndCopy)
+{
+  auto stream = MakeStreamFromRvalueContainer(std::vector<int>(container));
 }
 
 TEST_F(StreamTest, StreamClosedStateCorrectness)
@@ -374,4 +408,9 @@ TEST_F(StreamTest, FilterOperator)
 TEST_F(StreamTest, GroupOperator)
 {
   RUN_STREAM_TESTING_METHOD(RunGroupOperatorTests);
+}
+
+TEST_F(StreamTest, CompositeOpTerm)
+{
+  RUN_STREAM_TESTING_METHOD(RunCompositeOpTermTests);
 }

@@ -1,4 +1,4 @@
-cmake_minimum_required( VERSION 2.8 )
+cmake_minimum_required( VERSION 3.0.2 )
 
 option (BUILD_TESTS "Build tests" OFF)
 
@@ -12,7 +12,8 @@ include_directories(include)
 set(PROJECT_NAME example)
 project(${PROJECT_NAME})
 
-set(CMAKE_CXX_FLAGS "-std=c++17 -g -Wall -pedantic")
+set(CMAKE_CXX_COMPILER g++)
+set(CMAKE_CXX_FLAGS "-std=c++17 -Wall -pedantic")
 
 add_executable (${PROJECT_NAME}
 	src/example.cpp)

@@ -142,25 +142,16 @@ public:
   explicit Container(const Container& other) :
     ClosingOnMoveProvider<Container<ContainerType>>(other),
     container(other.container),
-    provider(this->container.begin(), this->container.end()),
-    advanceCount(other.advanceCount)
-  {
-    for (size_t i = 0; i < advanceCount; ++i)
-      provider.Advance();
-  }
+    provider(this->container.begin(), this->container.end())
+  {}
 
   explicit Container(Container&& other) :
     ClosingOnMoveProvider<Container<ContainerType>>(std::move(other)),
     container(std::move(other.container)),
-    provider(this->container.begin(), this->container.end()),
-    advanceCount(other.advanceCount)
-  {
-    for (size_t i = 0; i < advanceCount; ++i)
-      provider.Advance();
-  }
+    provider(this->container.begin(), this->container.end())
+  {}
 
   bool Advance() {
-    ++advanceCount;
     return provider.Advance();
   }
 
@@ -174,7 +165,6 @@ private:
 
   ContainerType container;
   Iterator<iterator_type> provider;
-  size_t advanceCount = 0;
 };
 
 template <class Provider>
