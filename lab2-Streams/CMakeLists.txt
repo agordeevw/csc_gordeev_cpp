@@ -9,14 +9,14 @@ include_directories(include)
 ## Example project
 ## Shows some usage of streams
 
-set(PROJECT_NAME example)
+set(PROJECT_NAME Example)
 project(${PROJECT_NAME})
 
 set(CMAKE_CXX_COMPILER g++)
 set(CMAKE_CXX_FLAGS "-std=c++17 -Wall -pedantic")
 
 add_executable (${PROJECT_NAME}
-	src/example.cpp)
+	src/Example.cpp)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
 	LINKER_LANGUAGE CXX
