@@ -11,12 +11,16 @@ namespace stream
   class StreamClosedException;
 
   /*
-    Data providers for streams.
-    Provide common interface:
+    Stream is a template class that is specialized by data providers
+      which are listed in this namespace.
+    Each provider must implement following interface:
       bool Advance(),
       auto& GetValue().
-    Advance() tries to advance the provider to the next element.
-    GetValue() returns current element.
+    Advance() tries to advance the provider to the next element
+      and returns true if attempt was successful and false otherwise.
+    GetValue() returns reference to current element.
+    Some providers might have to store the value within themselves
+      to be able to provide references.
   */
   namespace providers
   {
@@ -27,6 +31,7 @@ namespace stream
     */
     template <class Derived>
     class ClosingOnMoveProvider;
+
     /*
       Provides values from range defined by begin-end iterator pair.
       Range isn't modified.
@@ -76,6 +81,7 @@ namespace stream
 
     /*
       Groups Provider values in std::vector of fixed length.
+      Last group might be undersized.
     */
     template <class Provider>
     class Group;
@@ -96,7 +102,8 @@ namespace stream
       /*
         Used to prevent compilation in case
           when Stream class is specialized
-          with anything except existing providers.
+          with anything except existing providers
+          and initialize Stream with provider.
       */
       template <class T>
       struct is_provider;
