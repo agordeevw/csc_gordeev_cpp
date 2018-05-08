@@ -1,6 +1,6 @@
 # Lab2. C++ Stream library
 
-The library provides lazy evaluation of different transformations on data sequences.
+This header-only library provides lazy evaluation of different transformations on data sequences.
 
 Stream can be initialized from:
 
@@ -8,26 +8,27 @@ Stream can be initialized from:
 * Container
 * Initializer list
 * Pack (all values must be of the same type)
+* Generator - Callable
 
 All stream operations are divided in two groups: operators and terminators. Operators transform the stream into another stream. Terminators transform the stream into anything else.
 
-Lazy evaluation in this case means that until terminator is applied to the stream, no calculations on data can happen.
+Lazy evaluation in this case means that until terminator is applied to the stream, no calculations on data can happen. 
 
 Implemented terminators:
 
-* reduce
-* sum
-* print_to - prints to std::ostream
-* to_vector
-* nth
+* reduce(IdentityFn&&, Accumulator&&) - applies IdentityFn to first element of the stream and performs left fold on the rest of the stream using Accumulator.
+* sum - sums all values of the stream using operator+
+* print_to(std::ostream&, const char* delim) - prints to std::ostream using delimiter to split values
+* to_vector - forms std::vector from values of stream
+* nth(size_t n) - returns nth element of stream
 
 Implemented operators:
 
-* get
-* skip
-* map
-* filter
-* group
+* get(size_t n) - returns stream formed from first n values of given stream.
+* skip(size_t n) - returns stream formed from given by skipping first n values.
+* map(Function&&) - applies Function to all stream values
+* filter(Predicate&&) - forms new stream from all values of given stream that satisfy Predicate
+* group(size_t) - forms groups of stream values of fixed size. Last group might be undersized. 
 
 You can refer to ProjectStructure.cpp for overview of implementation structure and description of implementation details.
 
