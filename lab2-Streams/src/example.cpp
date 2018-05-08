@@ -119,9 +119,9 @@ std::ostream& operator<<(std::ostream& os, const NoisyType<T>& value) {
 
 class GeneratorNoisyTypeIncr {
 public:
-  GeneratorNoisyTypeIncr(int start = 0) : 
+  GeneratorNoisyTypeIncr(int start = 0) :
     counter(start) {}
-  NoisyType<int> operator()() { 
+  NoisyType<int> operator()() {
     return NoisyType<int>(counter++);
   }
 
@@ -131,9 +131,9 @@ private:
 
 struct GeneratorNoisyTypeRand {
 public:
-  GeneratorNoisyTypeRand(): 
+  GeneratorNoisyTypeRand():
     min(0), max(100000) {}
-  GeneratorNoisyTypeRand(int min, int max) : 
+  GeneratorNoisyTypeRand(int min, int max) :
     min(min), max(max) {}
   NoisyType<int> operator()() {
     return NoisyType<int>(rand() % (max - min) + min);
@@ -143,7 +143,7 @@ private:
   int min, max;
 };
 
-} // namespace 
+} // namespace
 
 int main(int, char**)
 {
@@ -155,18 +155,18 @@ int main(int, char**)
       std::cout << "iterator init:\n";
       std::vector<int> v1{1, 2, 3};
       Stream s_range(v1.begin(), v1.end());
-      (s_range 
+      (s_range
           | print_to(std::cout)) << std::endl;
 
       std::cout << "lvalue container init:\n";
       Stream s_lvref(v1);
-      (s_lvref 
+      (s_lvref
           | print_to(std::cout)) << std::endl;
 
       std::cout << "const lvalue container init:\n";
       const auto& cv1 = v1;
       Stream s_clvref(cv1);
-      (s_clvref 
+      (s_clvref
           | print_to(std::cout)) << std::endl;
 
       std::cout << "rvalue container init:\n";
@@ -179,14 +179,12 @@ int main(int, char**)
     }
 
     {
-      std::cout << "Vector from generator:\n";
-      auto vec = 
-        Stream(Rand{0, 100})
-          | get(2)
-          | to_vector();
+      Stream gen(Rand{0, 100});
+      auto vec = gen | get(2) | to_vector();
 
-      Stream(std::move(vec))
-      | print_to(std::cout);
+      std::cout << "Vector from generator:\n";
+      Stream print(vec);
+      print | print_to(std::cout);
       std::cout << std::endl;
     }
 
@@ -198,11 +196,11 @@ int main(int, char**)
         | filter([](auto&& x) { return true; })
         | print_to(std::cout);
       std::cout << std::endl;
-    }  
-    
+    }
+
     {
       std::cout << "nth from generator:\n";
-      auto val = 
+      auto val =
         Stream(Rand{0, 100})
         | nth(4);
       std::cout << val << std::endl;
@@ -211,27 +209,27 @@ int main(int, char**)
     {
       NoisyType<int>::Mute();
 
-      auto vec = 
+      auto vec =
         Stream(GeneratorNoisyTypeRand{})
         | get(5)
         | to_vector();
 
       std::cout << "Values:\n";
-      Stream(vec)
-      | print_to(std::cout);
+      Stream printStream(vec);
+      printStream | print_to(std::cout);
       std::cout << std::endl;
 
       std::cout << "Find min (Reduce):\n";
-      auto val = 
+      auto val =
         Stream(std::move(vec))
           | reduce(
               [] (auto&& min, auto&& val) -> auto&& { // remove "-> auto&&""
                                                       // unoptimized reduce
-                return (val < min) ? val : min; 
+                return (val < min) ? val : min;
               }
             );
       std::cout << val << std::endl;
-    }   
+    }
 
     {
       std::cout << "initialization list:\n";
@@ -243,30 +241,30 @@ int main(int, char**)
     {
       std::cout << "generator:\n";
       Stream s_gen(Incr{});
-      (s_gen 
-          | get(7) 
+      (s_gen
+          | get(7)
           | print_to(std::cout)) << std::endl;
     }
 
     {
       std::cout << "pack:\n";
       Stream s_pack(1);
-      (s_pack 
+      (s_pack
           | print_to(std::cout)) << std::endl;
     }
 
     {
       std::cout << "operator get:\n";
       Stream s_get(Rand{0, 100});
-      (s_get 
-          | get(5) 
+      (s_get
+          | get(5)
           | print_to(std::cout)) << std::endl;
     }
 
     {
       std::cout << "operator map:\n";
       Stream s_map(1, 2, 3, 4, 5);
-      (s_map 
+      (s_map
           | map([](int x) { return x*x; })
           | print_to(std::cout)) << std::endl;
     }
@@ -280,9 +278,9 @@ int main(int, char**)
     {
       std::cout << "operator reduce with id (expect 1):\n";
       Stream s_reduce_id(1, 1);
-      std::cout << 
-        (s_reduce_id 
-          | reduce([](int x) { return 2*x; }, 
+      std::cout <<
+        (s_reduce_id
+          | reduce([](int x) { return 2*x; },
                    [](int x, int y) { return x - y; })
         ) << std::endl;
     }
@@ -290,25 +288,25 @@ int main(int, char**)
     {
       std::cout << "operator filter:\n";
       Stream s_filter(1, -1, 2, -2, 3, -3);
-      (s_filter 
-          | filter([](auto x){ return x > 0; }) 
+      (s_filter
+          | filter([](auto x){ return x > 0; })
           | print_to(std::cout)) << std::endl;
     }
 
     {
       std::cout << "operator skip:\n";
       Stream s_skip(0, 1, 2, 3, 4, 5);
-      (s_skip 
-          | skip(3) 
+      (s_skip
+          | skip(3)
           | print_to(std::cout)) << std::endl;
     }
 
     {
       std::cout << "operator group:\n";
       Stream s_group(0,0,1,1,2,2,3);
-      (s_group 
-          | group(2) 
-          | map([](auto&& vec) { return std::accumulate(vec.begin(), vec.end(), 0); }) 
+      (s_group
+          | group(2)
+          | map([](auto&& vec) { return std::accumulate(vec.begin(), vec.end(), 0); })
           | print_to(std::cout)) << std::endl;
     }
 
@@ -353,7 +351,7 @@ int main(int, char**)
 
     {
       std::cout << "20 primes starting from 50th:\n";
-      auto primesStream = 
+      auto primesStream =
           Stream(Incr{2})
           | filter([](int x) {
               for (int y = 2; y <= x / 2; ++y)
@@ -369,7 +367,7 @@ int main(int, char**)
 
     {
       std::cout << "10th fibo number:\n";
-      auto fiboStream = 
+      auto fiboStream =
           Stream(Incr{})
           | map([] (int x) { return Fibo(x); }
           );
@@ -379,7 +377,7 @@ int main(int, char**)
 
     {
 
-      auto eulerRowStream = 
+      auto eulerRowStream =
         Stream(Incr{})
         | map([] (int x) {
             if (x == 0) return 1.0;
@@ -397,7 +395,7 @@ int main(int, char**)
 
     {
       std::cout << "fizzbuzz:\n";
-      auto fizzbuzzStream = 
+      auto fizzbuzzStream =
         Stream(Incr{1})
         | map([] (int x) -> std::string {
             if (x % 3 == 0 && x % 5 == 0)
@@ -422,13 +420,15 @@ int main(int, char**)
 
       std::cout << "Random values:\n";
 
-      (Stream(randomData)
+      Stream s1(randomData);
+      (s1
         | print_to(std::cout)) << std::endl;
 
       std::cout << "Minimal of these values (reduce):\n";
 
+      Stream s2(randomData);
       std::cout << (
-        Stream(randomData)
+        s2
           | reduce([](int min, int x) {
               return (x < min) ? x : min;
             })
@@ -436,8 +436,9 @@ int main(int, char**)
 
       std::cout << "Sum of these values:\n";
 
+      Stream s3(randomData);
       std::cout << (
-        Stream(randomData)
+        s3
           | sum()
         ) << std::endl;
 
@@ -457,10 +458,11 @@ int main(int, char**)
         int counter;
       };
 
+      Stream s4(randomData);
       std::cout << (
-        Stream(randomData)
+        s4
           | reduce(
-              [](int x) -> double { return x; }, 
+              [](int x) -> double { return x; },
               AverageReduce()
             )
         ) << std::endl;
@@ -471,11 +473,11 @@ int main(int, char**)
 
       std::cout << "Composite operators:\n";
 
-      auto transformAndFilter = 
+      auto transformAndFilter =
         map([](int x) { return x % 2 == 0 ? x : -x; })
         | filter([](int x) { return x > 0; });
 
-      auto groupAndSum = 
+      auto groupAndSum =
         group(3)
         | map(
             [](auto&& vec) {
@@ -484,7 +486,7 @@ int main(int, char**)
           )
         | sum();
 
-      auto value = 
+      auto value =
         Stream({1, 2, 3, 4, 5, 6, 7, 8, 9})
           | transformAndFilter
           | groupAndSum;
