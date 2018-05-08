@@ -3,6 +3,14 @@ namespace stream
   class EmptyStreamException;
 
   /*
+    Stream is declared closed when it was moved from
+      or was terminated. In such cases this stream cannot
+      be used anymore and any attempts to do so are prevented
+      by this exception' throw.
+  */
+  class StreamClosedException;
+
+  /*
     Data providers for streams.
     Provide common interface:
       bool Advance(),
@@ -13,6 +21,12 @@ namespace stream
   namespace providers
   {
 
+    /*
+      Automatically closes moved from stream so that it
+        couldn't be used anymore in operations.
+    */
+    template <class Derived>
+    class ClosingOnMoveProvider;
     /*
       Provides values from range defined by begin-end iterator pair.
       Range isn't modified.
@@ -80,8 +94,8 @@ namespace stream
       struct is_finite;
 
       /*
-        Used to prevent compilation in case 
-          when Stream class is specialized 
+        Used to prevent compilation in case
+          when Stream class is specialized
           with anything except existing providers.
       */
       template <class T>
@@ -126,7 +140,7 @@ namespace stream
     class Nth;
 
     /*
-      Each trait _MUST_ be specialized for each terminator. 
+      Each trait _MUST_ be specialized for each terminator.
     */
     namespace traits
     {
