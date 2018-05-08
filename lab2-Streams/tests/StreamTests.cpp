@@ -50,8 +50,8 @@ protected:
   }
 };
 
-template <class StreamGeneratorFunction>
-void DoEmptyStreamTests(StreamGeneratorFunction&& generator) {
+template <class StreamGenerator>
+void RunEmptyStreamTests(StreamGenerator&& generator) {
   std::ostringstream oss;
 
   EXPECT_THROW(generator()
@@ -77,20 +77,8 @@ void DoEmptyStreamTests(StreamGeneratorFunction&& generator) {
     EmptyStreamException);
 }
 
-TEST_F(StreamTest, EmptyStreamInitialization)
-{
-  DoEmptyStreamTests([this]{
-    return MakeStreamFromContainerIterators(emptyContainer); });
-  DoEmptyStreamTests([this]{
-    return MakeStreamFromLvalueContainer(emptyContainer); });
-  DoEmptyStreamTests([this]{
-    return MakeStreamFromConstContainer(emptyContainer); });
-  DoEmptyStreamTests([this]{
-    return MakeStreamFromRvalueContainer(std::vector<int>{}); });
-}
-
-template <class StreamGeneratorFunction>
-void DoClosedCorrectnessTests(StreamGeneratorFunction&& generator) {
+template <class StreamGenerator>
+void RunClosedCorrectnessTests(StreamGenerator&& generator) {
   auto stream = generator();
   ASSERT_FALSE(stream.GetProvider().IsClosed());
   ASSERT_FALSE(generator().GetProvider().IsClosed());
@@ -111,18 +99,6 @@ void DoClosedCorrectnessTests(StreamGeneratorFunction&& generator) {
   auto movedToStream = std::move(stream);
   ASSERT_FALSE(movedToStream.GetProvider().IsClosed());
   ASSERT_TRUE(stream.GetProvider().IsClosed());
-}
-
-TEST_F(StreamTest, ClosedCorrectness)
-{
-  DoClosedCorrectnessTests([this] {
-    return MakeStreamFromContainerIterators(container); });
-  DoClosedCorrectnessTests([this]{
-    return MakeStreamFromLvalueContainer(container); });
-  DoClosedCorrectnessTests([this]{
-    return MakeStreamFromConstContainer(container); });
-  DoClosedCorrectnessTests([this]{
-    return MakeStreamFromRvalueContainer(std::vector<int>(container)); });
 }
 
 TEST(IteratorBasedStream, ReduceTerminator)
@@ -374,4 +350,35 @@ TEST(IteratorBasedStream, GroupOperator)
     [](auto&& lhs, auto&& rhs) {
       return std::equal(lhs.begin(), lhs.end(), rhs.begin());
     }));
+}
+
+#define RUN_STREAM_TESTS(testing_method) \
+  (testing_method)([this]{ \
+    return MakeStreamFromContainerIterators(container); }); \
+  (testing_method)([this]{ \
+    return MakeStreamFromLvalueContainer(container); }); \
+  (testing_method)([this]{ \
+    return MakeStreamFromConstContainer(container); }); \
+  (testing_method)([this]{  \
+    return MakeStreamFromRvalueContainer(std::vector<int>(container)); }); \
+  (testing_method)([this]{ return MakeStreamFromIlist(); }); \
+  (testing_method)([this]{ return MakeStreamFromPack(); }); \
+  (testing_method)([this]{ return MakeStreamFromGenerator(); }); \
+
+
+TEST_F(StreamTest, EmptyStreamInitialization)
+{
+  RunEmptyStreamTests([this]{
+    return MakeStreamFromContainerIterators(emptyContainer); });
+  RunEmptyStreamTests([this]{
+    return MakeStreamFromLvalueContainer(emptyContainer); });
+  RunEmptyStreamTests([this]{
+    return MakeStreamFromConstContainer(emptyContainer); });
+  RunEmptyStreamTests([this]{
+    return MakeStreamFromRvalueContainer(std::vector<int>{}); });
+}
+
+TEST_F(StreamTest, ClosedCorrectness)
+{
+  RUN_STREAM_TESTS(RunClosedCorrectnessTests);
 }
