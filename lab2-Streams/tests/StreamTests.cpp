@@ -48,322 +48,270 @@ protected:
   auto MakeStreamFromGenerator() {
     return Stream(GeneratorClass{}) | get(5);
   }
-};
 
-template <class StreamGenerator>
-void RunEmptyStreamTests(StreamGenerator&& generator) {
-  std::ostringstream oss;
+  template <class StreamGenerator>
+  void RunEmptyStreamTests(StreamGenerator&& generator) {
+    std::ostringstream oss;
 
-  EXPECT_THROW(generator()
-    | reduce(
-      [](auto&& x, auto&& y) { return x; }
-      ), EmptyStreamException);
-  EXPECT_THROW(generator()
-    | reduce(
+    EXPECT_THROW(generator() | reduce(
+      [](auto&& x, auto&& y) { return x; }),  EmptyStreamException);
+    EXPECT_THROW(generator() | reduce(
       [](auto&& x) { return x; },
-      [](auto&& x, auto&& y) { return x; }
-      ), EmptyStreamException);
-  EXPECT_THROW(generator()
-    | sum(),
-    EmptyStreamException);
-  EXPECT_THROW(generator()
-    | print_to(oss),
-    EmptyStreamException);
-  EXPECT_THROW(generator()
-    | to_vector(),
-    EmptyStreamException);
-  EXPECT_THROW(generator()
-    | nth(0),
-    EmptyStreamException);
-}
+      [](auto&& x, auto&& y) { return x; }),  EmptyStreamException);
+    EXPECT_THROW(generator() | sum(),         EmptyStreamException);
+    EXPECT_THROW(generator() | print_to(oss), EmptyStreamException);
+    EXPECT_THROW(generator() | to_vector(),   EmptyStreamException);
+    EXPECT_THROW(generator() | nth(0),        EmptyStreamException);
+  }
 
-template <class StreamGenerator>
-void RunClosedCorrectnessTests(StreamGenerator&& generator) {
-  auto stream = generator();
-  ASSERT_FALSE(stream.GetProvider().IsClosed());
-  ASSERT_FALSE(generator().GetProvider().IsClosed());
+  template <class StreamGenerator>
+  void RunStreamClosedStateCorrectnessTests(StreamGenerator&& generator) {
+    auto stream = generator();
+    ASSERT_FALSE(stream.GetProvider().IsClosed());
+    ASSERT_FALSE(generator().GetProvider().IsClosed());
 
-  auto compositeStream = generator() | get(10);
-  ASSERT_FALSE(compositeStream.GetProvider().IsClosed());
-  ASSERT_FALSE((generator() | get(10)).GetProvider().IsClosed());
+    auto compositeStream = generator() | get(10);
+    ASSERT_FALSE(compositeStream.GetProvider().IsClosed());
+    ASSERT_FALSE((generator() | get(10)).GetProvider().IsClosed());
 
-  auto copiedStream = stream;
-  ASSERT_FALSE(copiedStream.GetProvider().IsClosed());
-  ASSERT_FALSE(stream.GetProvider().IsClosed());
+    auto copiedStream = stream;
+    ASSERT_FALSE(copiedStream.GetProvider().IsClosed());
+    ASSERT_FALSE(stream.GetProvider().IsClosed());
 
-  copiedStream | nth(0);
-  ASSERT_TRUE(copiedStream.GetProvider().IsClosed());
-  ASSERT_FALSE(stream.GetProvider().IsClosed());
-  EXPECT_THROW(copiedStream | nth(0), StreamClosedException);
+    copiedStream | nth(0);
+    ASSERT_TRUE(copiedStream.GetProvider().IsClosed());
+    ASSERT_FALSE(stream.GetProvider().IsClosed());
+    EXPECT_THROW(copiedStream | nth(0), StreamClosedException);
 
-  auto movedToStream = std::move(stream);
-  ASSERT_FALSE(movedToStream.GetProvider().IsClosed());
-  ASSERT_TRUE(stream.GetProvider().IsClosed());
-}
+    auto movedToStream = std::move(stream);
+    ASSERT_FALSE(movedToStream.GetProvider().IsClosed());
+    ASSERT_TRUE(stream.GetProvider().IsClosed());
+  }
 
-TEST(IteratorBasedStream, ReduceTerminator)
-{
-  std::vector<int> container{1, 2, 3, 4, 5};
-  auto initialContainerSize = container.size();
+  template <class StreamGenerator>
+  void RunReduceTerminatorTests(StreamGenerator&& generator) {
+    auto initialContainerSize = container.size();
 
-  //  sum() terminator
-  EXPECT_EQ(Stream(container.begin(), container.end()) | sum(),
-    std::accumulate(container.begin(), container.end(), 0));
-  ASSERT_EQ(container.size(), initialContainerSize);
+    //  sum() terminator
+    EXPECT_EQ(
+      generator() | sum(),
+      std::accumulate(container.begin(), container.end(), 0));
+    ASSERT_EQ(container.size(), initialContainerSize);
 
-  //  reduce with default id
-  auto minValue =
-    Stream(container.begin(), container.end())
-    | reduce([] (auto min, auto val) {
+    //  reduce with default id
+    auto minValue =
+      generator() | reduce([] (auto min, auto val) {
         return std::min(min, val); });
 
-  EXPECT_EQ(minValue,
-    *std::min_element(container.begin(), container.end()));
-  ASSERT_EQ(container.size(), initialContainerSize);
+    EXPECT_EQ(minValue, *std::min_element(container.begin(), container.end()));
+    ASSERT_EQ(container.size(), initialContainerSize);
 
-  //  reduce with custom id
-  std::string concatValuesString =
-    Stream(container.begin(), container.end())
-    | reduce(
+    //  reduce with custom id
+    std::string concatValuesString =
+      generator() | reduce(
         [] (int x) { return std::to_string(x); },
         [] (std::string res, int val) { return res + std::to_string(val); });
 
-  std::string expectedConcatString;
-  for (auto&& val : container) {
-    expectedConcatString += std::to_string(val);
-  }
+    std::string expectedConcatString;
+    for (auto&& val : container)
+      expectedConcatString += std::to_string(val);
 
-  EXPECT_EQ(concatValuesString, expectedConcatString);
-  ASSERT_EQ(container.size(), initialContainerSize);
-
-  //  reduce with external modification
-  std::vector<int> partialSums;
-  Stream(container.begin(), container.end())
-  | reduce(
-    [&partialSums](int x) {
-      partialSums.emplace_back(x);
-      return x; },
-    [&partialSums](int x, int y) {
-      partialSums.emplace_back(x + y);
-      return x + y;
-    });
-  ASSERT_EQ(container.size(), initialContainerSize);
-  EXPECT_EQ(partialSums.size(), container.size());
-
-  std::vector<int> expectedPartialSums;
-  int sum = 0;
-  for (auto val : container) {
-    sum += val;
-    expectedPartialSums.emplace_back(sum);
-  }
-
-  EXPECT_TRUE(std::equal(partialSums.begin(), partialSums.end(),
-    expectedPartialSums.begin()));
-}
-
-TEST(IteratorBasedStream, PrintToTerminator)
-{
-  std::ostringstream oss;
-  std::vector<int> container{1, 2, 3, 4, 5};
-  auto initialContainerSize = container.size();
-
-  Stream(container.begin(), container.end()) | print_to(oss);
-  ASSERT_EQ(initialContainerSize, container.size());
-
-  std::ostringstream expectedOss;
-  auto it = container.begin();
-  expectedOss << *it++;
-  while (it != container.end())
-    expectedOss << " " << *it++;
-
-  EXPECT_EQ(oss.str(), expectedOss.str());
-
-  oss.str("");
-  expectedOss.str("");
-  const char* delim = "-";
-
-  Stream(container.begin(), container.end()) | print_to(oss, delim);
-  ASSERT_EQ(initialContainerSize, container.size());
-
-  it = container.begin();
-  expectedOss << *it++;
-  while (it != container.end())
-    expectedOss << delim << *it++;
-
-  EXPECT_EQ(oss.str(), expectedOss.str());
-}
-
-TEST(IteratorBasedStream, ToVectorTerminator)
-{
-  std::vector<int> container{1, 2, 3, 4, 5};
-  auto initialContainerSize = container.size();
-
-  auto vec =
-    Stream(container.begin(), container.end())
-    | to_vector();
-  ASSERT_EQ(container.size(), initialContainerSize);
-
-  EXPECT_TRUE(std::equal(vec.begin(), vec.end(), container.begin()));
-}
-
-TEST(IteratorBasedStream, NthTerminator)
-{
-  std::vector<int> container{1, 2, 3, 4, 5};
-  auto initialContainerSize = container.size();
-
-  for (size_t i = 0; i < container.size(); ++i) {
-    auto value =
-      Stream(container.begin(), container.end())
-      | nth(i);
+    EXPECT_EQ(concatValuesString, expectedConcatString);
     ASSERT_EQ(container.size(), initialContainerSize);
-    EXPECT_EQ(value, container[i]);
+
+    //  reduce with effects
+    std::vector<int> partialSums;
+    generator() | reduce(
+      [&partialSums](int x) {
+        partialSums.emplace_back(x);
+        return x; },
+      [&partialSums](int x, int y) {
+        partialSums.emplace_back(x + y);
+        return x + y;
+      });
+    ASSERT_EQ(container.size(), initialContainerSize);
+    EXPECT_EQ(partialSums.size(), container.size());
+
+    std::vector<int> expectedPartialSums;
+    int sum = 0;
+    for (auto val : container) {
+      sum += val;
+      expectedPartialSums.emplace_back(sum);
+    }
+
+    EXPECT_TRUE(std::equal(partialSums.begin(), partialSums.end(),
+      expectedPartialSums.begin()));
   }
 
-  EXPECT_THROW(
-    Stream(container.begin(), container.end()) | nth(container.size()),
-    EmptyStreamException);
-}
+  template <class StreamGenerator>
+  void RunPrintToTerminatorTests(StreamGenerator&& generator) {
+    std::ostringstream oss;
+    auto initialContainerSize = container.size();
 
-TEST(IteratorBasedStream, GetOperator)
-{
-  std::vector<int> container{1, 2, 3, 4, 5};
+    generator() | print_to(oss);
+    ASSERT_EQ(initialContainerSize, container.size());
 
-  EXPECT_THROW(Stream(container.begin(), container.end())
-    | get(0) | to_vector(), EmptyStreamException);
+    std::ostringstream expectedOss;
+    auto it = container.begin();
+    expectedOss << *it++;
+    while (it != container.end())
+      expectedOss << " " << *it++;
 
-  const size_t toGetNumber = 2;
-  auto partialGetVector =
-    Stream(container.begin(), container.end())
-    | get(toGetNumber) | to_vector();
+    EXPECT_EQ(oss.str(), expectedOss.str());
 
-  EXPECT_TRUE(std::equal(
-    partialGetVector.begin(), partialGetVector.end(), container.begin()));
+    oss.str("");
+    expectedOss.str("");
+    const char* delim = "-";
 
-  auto fullGetVector =
-    Stream(container.begin(), container.end())
-    | get(container.size()) | to_vector();
+    generator() | print_to(oss, delim);
+    ASSERT_EQ(initialContainerSize, container.size());
 
-  EXPECT_TRUE(std::equal(
-    fullGetVector.begin(), fullGetVector.end(), container.begin()));
+    it = container.begin();
+    expectedOss << *it++;
+    while (it != container.end())
+      expectedOss << delim << *it++;
 
-  auto oversizedGetVector =
-    Stream(container.begin(), container.end())
-    | get(container.size() + 1) | to_vector();
+    EXPECT_EQ(oss.str(), expectedOss.str());
+  }
 
-  EXPECT_TRUE(std::equal(
-    oversizedGetVector.begin(), oversizedGetVector.end(), container.begin()));
-}
+  template <class StreamGenerator>
+  void RunToVectorTerminatorTests(StreamGenerator&& generator) {
+    auto initialContainerSize = container.size();
 
-TEST(IteratorBasedStream, SkipOperator)
-{
-  std::vector<int> container{1, 2, 3, 4, 5};
+    auto vec = generator() | to_vector();
+    ASSERT_EQ(container.size(), initialContainerSize);
 
-  size_t skipAmount = 2;
-  auto vec =
-    Stream(container.begin(), container.end())
-    | skip(skipAmount) | to_vector();
+    EXPECT_TRUE(std::equal(vec.begin(), vec.end(), container.begin()));
+  }
 
-  auto containerIter = container.begin();
-  std::advance(containerIter, skipAmount);
-  EXPECT_TRUE(std::equal(vec.begin(), vec.end(),
-    containerIter));
+  template <class StreamGenerator>
+  void RunNthTerminatorTests(StreamGenerator&& generator) {
+    auto initialContainerSize = container.size();
 
-  size_t overboardSkipAmount = container.size();
-  EXPECT_THROW(Stream(container.begin(), container.end())
-    | skip(overboardSkipAmount) | to_vector(),
-    EmptyStreamException);
-}
+    for (size_t i = 0; i < container.size(); ++i) {
+      auto value = generator() | nth(i);
+      ASSERT_EQ(container.size(), initialContainerSize);
+      EXPECT_EQ(value, container[i]);
+    }
 
-TEST(IteratorBasedStream, MapOperator)
-{
-  std::vector<int> container{1, 2, 3, 4, 5};
+    EXPECT_THROW(generator() | nth(container.size()), EmptyStreamException);
+  }
 
-  auto identityVec =
-    Stream(container.begin(), container.end())
-    | map([](auto&& x) { return x; })
-    | to_vector();
+  template <class StreamGenerator>
+  void RunGetOperatorTests(StreamGenerator&& generator) {
+    EXPECT_THROW(generator() | get(0) | to_vector(), EmptyStreamException);
 
-  EXPECT_TRUE(std::equal(identityVec.begin(), identityVec.end(),
-    container.begin()));
+    const size_t toGetNumber = 2;
+    auto partialGetVector = generator() | get(toGetNumber) | to_vector();
 
-  std::ostringstream oss;
-  Stream(container.begin(), container.end())
-  | map([](auto&& x) { return std::to_string(x); })
-  | print_to(oss);
+    EXPECT_TRUE(std::equal(
+      partialGetVector.begin(), partialGetVector.end(), container.begin()));
 
-  std::ostringstream expectedOss;
-  auto it = container.begin();
-  expectedOss << *it++;
-  while (it != container.end())
-    expectedOss << " " << *it++;
+    auto fullGetVector =
+      generator() | get(container.size()) | to_vector();
 
-  EXPECT_EQ(oss.str(), expectedOss.str());
-}
+    EXPECT_TRUE(std::equal(fullGetVector.begin(), fullGetVector.end(),
+      container.begin()));
 
-TEST(IteratorBasedStream, FilterOperator)
-{
-  std::vector<int> container{1, 2, 3, 4, 5};
+    auto oversizedGetVector = generator()
+      | get(container.size() + 1) | to_vector();
 
-  auto acceptingFilterVec =
-    Stream(container.begin(), container.end())
-    | filter([](auto&& x) { return true; })
-    | to_vector();
+    EXPECT_TRUE(std::equal(oversizedGetVector.begin(), oversizedGetVector.end(),
+      container.begin()));
+  }
 
-  EXPECT_TRUE(std::equal(acceptingFilterVec.begin(), acceptingFilterVec.end(),
-    container.begin()));
+  template <class StreamGenerator>
+  void RunSkipOperatorTests(StreamGenerator&& generator) {
+    size_t skipAmount = 2;
+    auto vec = generator() | skip(skipAmount) | to_vector();
 
-  EXPECT_THROW(Stream(container.begin(), container.end())
-    | filter([](auto&& x) { return false; })
-    | to_vector(),
-    EmptyStreamException);
+    auto containerIter = container.begin();
+    std::advance(containerIter, skipAmount);
+    EXPECT_TRUE(std::equal(vec.begin(), vec.end(), containerIter));
 
-  auto predicate = [](auto&& x) { return x % 2 == 0; };
-  auto invPredicate = [&predicate](auto&& x) { return !predicate(x); };
+    size_t overboardSkipAmount = container.size();
+    EXPECT_THROW(generator() | skip(overboardSkipAmount) | to_vector(),
+      EmptyStreamException);
+  }
 
-  auto filteredVec =
-    Stream(container.begin(), container.end())
-    | filter(predicate)
-    | to_vector();
+  template <class StreamGenerator>
+  void RunMapOperatorTests(StreamGenerator&& generator) {
+    auto identityVec = generator()
+      | map([](auto&& x) { return x; }) | to_vector();
 
-  std::vector<int> copyVec;
-  std::remove_copy_if(container.begin(), container.end(),
-    std::back_inserter(copyVec), invPredicate);
+    EXPECT_TRUE(std::equal(identityVec.begin(), identityVec.end(),
+      container.begin()));
 
-  EXPECT_TRUE(std::equal(filteredVec.begin(), filteredVec.end(),
-    copyVec.begin()));
-}
+    std::ostringstream oss;
+    generator()
+      | map([](auto&& x) { return std::to_string(x); }) | print_to(oss);
 
-TEST(IteratorBasedStream, GroupOperator)
-{
-  std::vector<int> container{1, 2, 3, 4, 5};
-  std::size_t groupSize = 2;
-  std::vector<std::vector<int>> groupedVec = {{1, 2}, {3, 4}, {5}};
+    std::ostringstream expectedOss;
+    auto it = container.begin();
+    expectedOss << *it++;
+    while (it != container.end())
+      expectedOss << " " << *it++;
 
-  auto streamGroupedVec =
-    Stream(container.begin(), container.end())
-    | group(groupSize) | to_vector();
+    EXPECT_EQ(oss.str(), expectedOss.str());
+  }
 
-  EXPECT_TRUE(std::equal(
-    streamGroupedVec.begin(),
-    streamGroupedVec.end(),
-    groupedVec.begin(),
-    [](auto&& lhs, auto&& rhs) {
-      return std::equal(lhs.begin(), lhs.end(), rhs.begin());
-    }));
-}
+  template <class StreamGenerator>
+  void RunFilterOperatorTests(StreamGenerator&& generator) {
+    auto acceptingFilterVec =
+      generator() | filter([](auto&& x) { return true; }) | to_vector();
 
-#define RUN_STREAM_TESTS(testing_method) \
+    EXPECT_TRUE(std::equal(acceptingFilterVec.begin(), acceptingFilterVec.end(),
+      container.begin()));
+
+    EXPECT_THROW(
+      generator() | filter([](auto&& x) { return false; }) | to_vector(),
+      EmptyStreamException);
+
+    auto predicate = [](auto&& x) { return x % 2 == 0; };
+    auto invPredicate = [&predicate](auto&& x) { return !predicate(x); };
+
+    auto filteredVec =
+      generator() | filter(predicate) | to_vector();
+
+    std::vector<int> copyVec;
+    std::remove_copy_if(container.begin(), container.end(),
+      std::back_inserter(copyVec), invPredicate);
+
+    EXPECT_TRUE(std::equal(filteredVec.begin(), filteredVec.end(),
+      copyVec.begin()));
+  }
+
+  template <class StreamGenerator>
+  void RunGroupOperatorTests(StreamGenerator&& generator) {
+    std::size_t groupSize = 2;
+    std::vector<std::vector<int>> groupedVec = {{1, 2}, {3, 4}, {5}};
+
+    auto streamGroupedVec =
+      generator() | group(groupSize) | to_vector();
+
+    EXPECT_TRUE(std::equal(
+      streamGroupedVec.begin(), streamGroupedVec.end(), groupedVec.begin(),
+      [](auto&& lhs, auto&& rhs) {
+        return std::equal(lhs.begin(), lhs.end(), rhs.begin());
+      }));
+  }
+};
+
+#define RUN_STREAM_TESTING_METHOD(testing_method) \
   (testing_method)([this]{ \
     return MakeStreamFromContainerIterators(container); }); \
   (testing_method)([this]{ \
     return MakeStreamFromLvalueContainer(container); }); \
   (testing_method)([this]{ \
     return MakeStreamFromConstContainer(container); }); \
-  (testing_method)([this]{  \
+  (testing_method)([this]{ \
     return MakeStreamFromRvalueContainer(std::vector<int>(container)); }); \
-  (testing_method)([this]{ return MakeStreamFromIlist(); }); \
-  (testing_method)([this]{ return MakeStreamFromPack(); }); \
-  (testing_method)([this]{ return MakeStreamFromGenerator(); }); \
+  (testing_method)([this]{ \
+    return MakeStreamFromIlist(); }); \
+  (testing_method)([this]{ \
+    return MakeStreamFromPack(); }); \
+  (testing_method)([this]{ \
+    return MakeStreamFromGenerator(); });
 
 
 TEST_F(StreamTest, EmptyStreamInitialization)
@@ -378,7 +326,52 @@ TEST_F(StreamTest, EmptyStreamInitialization)
     return MakeStreamFromRvalueContainer(std::vector<int>{}); });
 }
 
-TEST_F(StreamTest, ClosedCorrectness)
+TEST_F(StreamTest, StreamClosedStateCorrectness)
 {
-  RUN_STREAM_TESTS(RunClosedCorrectnessTests);
+  RUN_STREAM_TESTING_METHOD(RunStreamClosedStateCorrectnessTests);
+}
+
+TEST_F(StreamTest, ReduceTerminator)
+{
+  RUN_STREAM_TESTING_METHOD(RunReduceTerminatorTests);
+}
+
+TEST_F(StreamTest, PrintToTerminator)
+{
+  RUN_STREAM_TESTING_METHOD(RunPrintToTerminatorTests);
+}
+
+TEST_F(StreamTest, ToVectorTerminator)
+{
+  RUN_STREAM_TESTING_METHOD(RunToVectorTerminatorTests);
+}
+
+TEST_F(StreamTest, NthTerminator)
+{
+  RUN_STREAM_TESTING_METHOD(RunNthTerminatorTests);
+}
+
+TEST_F(StreamTest, GetOperator)
+{
+  RUN_STREAM_TESTING_METHOD(RunGetOperatorTests);
+}
+
+TEST_F(StreamTest, SkipOperator)
+{
+  RUN_STREAM_TESTING_METHOD(RunSkipOperatorTests);
+}
+
+TEST_F(StreamTest, MapOperator)
+{
+  RUN_STREAM_TESTING_METHOD(RunMapOperatorTests);
+}
+
+TEST_F(StreamTest, FilterOperator)
+{
+  RUN_STREAM_TESTING_METHOD(RunFilterOperatorTests);
+}
+
+TEST_F(StreamTest, GroupOperator)
+{
+  RUN_STREAM_TESTING_METHOD(RunGroupOperatorTests);
 }

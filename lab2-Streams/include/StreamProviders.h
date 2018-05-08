@@ -299,8 +299,8 @@ template <class Provider>
 class Group final : public ClosingOnMoveProvider<Group<Provider>>
 {
   using value_type =
-    std::vector<std::remove_reference_t<
-      decltype(std::declval<Provider>().GetValue())>>;
+    std::vector<std::remove_const_t<std::remove_reference_t<
+      decltype(std::declval<Provider>().GetValue())>>>;
 
 public:
   Group(Provider&& provider, size_t size) :
