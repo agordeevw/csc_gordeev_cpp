@@ -33,18 +33,15 @@ You can refer to ProjectStructure.cpp for overview of implementation structure a
 
 ## Building
 
-To build:
+To build, run following command from the project root directory:
 
 ```
-mkdir build
-cd build
-cmake .. -DBUILD_TESTS=ON
-cmake --build .
+mkdir build && cd build && cmake .. -DBUILD_TESTS=ON && cmake --build . && cd ..
 ```
 
 ## Executing
 
-Compiled binaries will be stored in bin folder.
+Compiled binaries will be stored in bin folder. These binaries include two executables:
 
 * Example - some examples of usage.
 * StreamTests - self-explanatory.
