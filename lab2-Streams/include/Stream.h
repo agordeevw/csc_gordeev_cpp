@@ -40,7 +40,19 @@ struct can_be_pack_initialized_from {
 };
 
 template <template <class> class Stream, class Provider>
+struct can_be_pack_initialized_from<const Stream<Provider>&&> : std::false_type {};
+
+template <template <class> class Stream, class Provider>
+struct can_be_pack_initialized_from<const Stream<Provider>&> : std::false_type {};
+
+template <template <class> class Stream, class Provider>
+struct can_be_pack_initialized_from<Stream<Provider>&&> : std::false_type {};
+
+template <template <class> class Stream, class Provider>
 struct can_be_pack_initialized_from<Stream<Provider>&> : std::false_type {};
+
+template <template <class> class Stream, class Provider>
+struct can_be_pack_initialized_from<Stream<Provider>> : std::false_type {};
 
 template <class T, class ... Args>
 void Unpack(std::vector<T>& vec, Args&& ... args) {
