@@ -15,7 +15,7 @@ hline()
 	echo "All is good" ; fi
 
 hline valgrind/example
-valgrind --leak-check=full bin/example
+valgrind --leak-check=full bin/Example
 
 hline valgrind/tests
 valgrind --leak-check=full bin/StreamTests
