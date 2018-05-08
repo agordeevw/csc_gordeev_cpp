@@ -355,11 +355,6 @@ TEST_F(StreamTest, EmptyStreamInitialization)
     return MakeStreamFromRvalueContainer(std::vector<int>{}); });
 }
 
-TEST_F(StreamTest, ContainerBasedStreamMoveAndCopy)
-{
-  auto stream = MakeStreamFromRvalueContainer(std::vector<int>(container));
-}
-
 TEST_F(StreamTest, StreamClosedStateCorrectness)
 {
   RUN_STREAM_TESTING_METHOD(RunStreamClosedStateCorrectnessTests);
