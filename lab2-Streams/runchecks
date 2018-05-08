@@ -10,8 +10,12 @@ hline()
     printf "${NC}\n"
 }
 
- hline clang-analyzer
+hline clang-analyzer
  if (clang --analyze --analyzer-output text -std=c++17 -x c++ -Wall -pedantic -Iinclude -Ibuild/tests/gtest/src/gtest/googletest/include src/*.cpp tests/*.cpp); then
+	echo "All is good" ; fi
+
+hline clang-tidy
+if (clang-tidy src/* tests/*.cpp -- -Iinclude -Ibuild/tests/gtest/src/gtest/googletest/include -std=c++17 -x c++ -Wall -pedantic); then
 	echo "All is good" ; fi
 
 hline valgrind/example
@@ -24,6 +28,5 @@ hline code_coverage
 cp build/tests/CMakeFiles/StreamTests.dir/StreamTests.cpp.gcno testcoverage.gcno
 cp build/tests/CMakeFiles/StreamTests.dir/StreamTests.cpp.gcda testcoverage.gcda
 gcov -n testcoverage.gcno > testcoverage.gcov
-sed -n '/lab2-Streams\/include\|lab2-Streams\/src\|lab2-Streams\/tests/ {p; n; p}' testcoverage.gcov > CodeCoverageInfo
-cat CodeCoverageInfo
+sed -n '/lab2-Streams\/include\|lab2-Streams\/src\|lab2-Streams\/tests/ {p; n; p}' testcoverage.gcov
 rm testcoverage*
