@@ -87,7 +87,7 @@ fizzbuzzStream | map(fizzbuzz) | get(30) | print_to(std::cout);
 
 ### Implementation notes
 
-Streams can be empty, but their termination throws EmptyStreamExcaption.
+Streams can be empty, but their termination throws EmptyStreamException.
 
 Streams can be copied. In case of streams generated from rvalue containers the container is copied too.
 
