@@ -96,7 +96,7 @@ Any attempt to do so will lead to StreamClosedException throw.
 
 Terminators and operators are implemented as named Callable types, allowing compile-time checks to validate stream transformation correctness. 
 
-Some terminators technically do not support infinite streams. For example, application of to_vector() to Generator-based stream will lead to endless allocations. Applications of such terminators to infinite streams will lead to compilation errors to preven these kinds of mistakes.
+Some terminators technically do not support infinite streams. For example, application of to_vector() to Generator-based stream will lead to endless allocations. Applications of such terminators to infinite streams will lead to compilation errors to prevent these kinds of mistakes.
 
 For example:
 ```
